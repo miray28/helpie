@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styles */
+@layer components {
+    .sidebar-link {
+        @apply flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-all duration-200;
+    }
+
+    .sidebar-link.active {
+        @apply bg-gray-100;
+    }
+
+    .sidebar-link-icon {
+        @apply w-5;
+    }
+
+    .sidebar-link-text {
+        @apply ml-3;
+    }
+}

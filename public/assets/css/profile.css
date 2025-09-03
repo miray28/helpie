@@ -1,0 +1,167 @@
+:root {
+    --primary: #2DA664;
+    --primary-dark: #34c576;
+    --background: #f3f4f6;
+    --card-bg: #ffffff;
+    --text-main: #1f2937;
+    --text-secondary: #6b7280;
+    --accent: #e4e6eb;
+    --border: #e4e6eb;
+    --shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    --heading-font: 'Orbitron', 'Montserrat', Arial, sans-serif;
+    --body-font: 'Roboto', Arial, sans-serif;
+}
+[data-theme="dark"] {
+    --primary: #6AFB6A;
+    --primary-dark: #4ecf4e;
+    --background: #1a1f26;
+    --card-bg: #232832;
+    --text-main: #e0e0e0;
+    --text-secondary: #a0a0a0;
+    --accent: #2a3038;
+    --border: #333a44;
+    --shadow: 0 8px 24px rgba(0,0,0,0.18);
+}
+
+.um-profile {
+    max-width: 800px;
+    margin: 0 auto;
+    padding-top: 30px;
+}
+
+.um-header {
+    position: relative;
+    height: 300px;
+    border-radius: 3px;
+    background: var(--background);
+    margin-bottom: 30px;
+}
+
+.um-profile-photo {
+    position: absolute;
+    left: 30px;
+    bottom: -60px;
+    width: 150px;
+    height: 150px;
+}
+
+.um-profile-photo img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 5px solid var(--card-bg);
+    box-shadow: var(--shadow);
+    object-fit: cover;
+}
+
+.um-cover {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.um-profile-meta {
+    padding: 0 30px 0 200px;
+    color: var(--text-main);
+}
+
+.um-name {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: var(--text-main);
+}
+
+.um-meta {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.um-profile-nav {
+    background: var(--card-bg);
+    padding: 10px;
+    border-radius: 3px;
+    box-shadow: var(--shadow);
+    margin-bottom: 30px;
+}
+
+.um-profile-nav-item {
+    display: inline-block;
+    margin-right: 20px;
+    padding: 10px 20px;
+    color: var(--text-secondary);
+    font-size: 14px;
+    text-decoration: none;
+    border-radius: 3px;
+    transition: all 0.2s ease;
+}
+
+.um-profile-nav-item:hover {
+    background: var(--accent);
+    color: var(--primary);
+}
+
+.um-profile-nav-item.active {
+    background: var(--primary);
+    color: var(--card-bg);
+}
+
+.um-profile-headericon {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 10;
+}
+
+.um-profile-headericon .dropdown-toggle {
+    background: rgba(255, 255, 255, 0.8);
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+}
+
+.um-profile-headericon .dropdown-toggle:hover {
+    background: var(--card-bg);
+    color: var(--primary);
+}
+
+.um-profile-headericon .dropdown-menu {
+    min-width: 200px;
+    padding: 0;
+    margin-top: 5px;
+    border: none;
+    box-shadow: var(--shadow);
+    background: var(--card-bg);
+}
+
+.um-profile-headericon .dropdown-item {
+    padding: 12px 20px;
+    color: var(--text-main);
+    font-size: 14px;
+    border-bottom: 1px solid var(--border);
+}
+
+.um-profile-headericon .dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.um-profile-headericon .dropdown-item i {
+    width: 20px;
+    margin-right: 8px;
+    color: var(--text-secondary);
+}
+
+.um-profile-headericon .dropdown-item:hover {
+    background: var(--accent);
+    color: var(--primary);
+}
+
+.um-profile-headericon .dropdown-item.text-danger:hover {
+    background: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+}
