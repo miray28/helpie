@@ -1,5 +1,5 @@
 'use strict';
-// Local development server. On Netlify the app runs from netlify/functions/app.js.
+// Local development server. On Netlify the app runs from netlify/functions/app.mjs.
 const config = require('./src/config');
 const { app } = require('./src/app');
 const { db } = require('./src/db');

@@ -42,3 +42,6 @@ public/uploads/
 ~$*
 # App data (SQLite database and uploaded images)
 /data/
+
+# Netlify local state
+.netlify/
