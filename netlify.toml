@@ -7,7 +7,8 @@
 
 [functions]
   directory = "netlify/functions"
+  # Trace and ship real node_modules files instead of inlining them: the app
+  # is CommonJS and relies on __dirname and runtime requires.
+  node_bundler = "nft"
   # Templates are read from disk at runtime, so they must be shipped explicitly.
   included_files = ["views/**"]
-  # Shipped as regular node_modules rather than inlined into the bundle.
-  external_node_modules = ["express", "ejs", "express-session", "helmet", "multer", "bcryptjs", "pg", "serverless-http", "@netlify/blobs", "@netlify/database"]
