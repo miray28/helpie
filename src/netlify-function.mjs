@@ -6,7 +6,7 @@
 // API-Gateway-shaped event, so this file only translates Request -> event and
 // result -> Response.
 import serverless from 'serverless-http';
-import appModule from '../../src/app.js';
+import appModule from './app.js';
 
 const handler = serverless(appModule.app, { binary: ['image/*'] });
 

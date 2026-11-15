@@ -1,5 +1,5 @@
 [build]
-  command = "echo 'No build step: static assets are served from public/'"
+  command = "npm run build"
   publish = "public"
 
 [build.environment]
@@ -7,8 +7,5 @@
 
 [functions]
   directory = "netlify/functions"
-  # Trace and ship real node_modules files instead of inlining them: the app
-  # is CommonJS and relies on __dirname and runtime requires.
-  node_bundler = "nft"
   # Templates are read from disk at runtime, so they must be shipped explicitly.
   included_files = ["views/**"]

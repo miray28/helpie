@@ -26,7 +26,7 @@ to run the end-to-end tests.
 ## Deploy to Netlify
 
 Everything Netlify needs is in the repository (`netlify.toml`,
-`netlify/functions/app.mjs`, `netlify/database/migrations/`).
+`src/netlify-function.mjs`, `netlify/database/migrations/`).
 
 1. Connect this repository to a Netlify project (or run `netlify deploy --prod`).
 2. Set one environment variable on the project: `SESSION_SECRET`, a long random
@@ -76,7 +76,8 @@ If the account already exists it is promoted to admin; otherwise it is created
 ```
 server.js                    Local development server
 netlify.toml                 Netlify build, function and routing config
-netlify/functions/app.mjs    Runs the Express app as a Netlify Function
+src/netlify-function.mjs     Runs the Express app as a Netlify Function
+scripts/build-netlify.js     Bundles it into netlify/functions/app.mjs at deploy time
 netlify/database/migrations  Postgres schema (applied by Netlify on deploy)
 src/app.js                   Express app, security headers, sessions, errors
 src/db.js                    Database access (hosted Postgres or embedded)
