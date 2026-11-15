@@ -23,9 +23,9 @@
         <header class="chat-head">
           <a class="btn ghost small" href="/messages" aria-label="All conversations">←</a>
           <img class="avatar" src="<%= h.avatar(partner) %>" alt="">
-          <div class="grow"><a href="/users/<%= partner.id %>" style="color:inherit"><strong><%= partner.username %></strong></a><div class="chat-status" data-chat-status>Connecting…</div></div>
+          <div class="grow"><a href="/users/<%= partner.id %>" style="color:inherit"><strong><%= partner.username %></strong></a><div class="chat-status" data-chat-status></div></div>
         </header>
-        <div class="chat-log" data-chat-log data-me="<%= currentUser.id %>" data-partner="<%= partner.id %>" aria-live="polite">
+        <div class="chat-log" data-chat-log data-me="<%= currentUser.id %>" data-partner="<%= partner.id %>" data-last="<%= messages.length ? messages[messages.length - 1].id : 0 %>"<% if (realtime) { %> data-realtime-url="<%= realtime.url %>" data-realtime-topic="<%= realtime.topic %>"<% } %> aria-live="polite">
           <% if (!messages.length) { %><p class="muted center" data-chat-empty style="margin:auto">Say hello to <%= partner.username %> 👋</p><% } %>
           <% messages.forEach((m) => { %>
             <div class="bubble <%= m.sender_id === currentUser.id ? 'mine' : '' %>"><%= m.body %><time datetime="<%= new Date(m.created_at).toISOString() %>" data-time="<%= m.created_at %>"></time></div>

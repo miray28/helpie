@@ -10,18 +10,17 @@ const http = require('http');
 
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'helpie-test-'));
 process.env.DATA_DIR = dataDir;
+if (!process.env.HELPIE_TEST_KEEP_DB) delete process.env.DATABASE_URL;
 
-const { WebSocket } = require('ws');
-const { app, sessionParser } = require('../src/app');
+const { app } = require('../src/app');
 const { db } = require('../src/db');
-const chat = require('../src/chat');
 
 let server;
 let base;
 
 before(async () => {
+  await db.ready;
   server = http.createServer(app);
-  chat.attach(server, sessionParser);
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   base = `http://127.0.0.1:${server.address().port}`;
 });
@@ -29,7 +28,7 @@ before(async () => {
 after(async () => {
   server.closeAllConnections();
   await new Promise((resolve) => server.close(resolve));
-  db.close();
+  await db.close();
   fs.rmSync(dataDir, { recursive: true, force: true });
 });
 
@@ -77,7 +76,7 @@ async function register(c, username, role = 'donor') {
   assert.equal(res.status, 302, res.text);
   assert.equal(res.location, '/feed');
   await c.get('/feed');
-  return db.prepare('SELECT id FROM users WHERE username = ?').get(username).id;
+  return (await db.get('SELECT id FROM users WHERE username = ?', [username])).id;
 }
 
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
@@ -127,7 +126,7 @@ test('donation flow: post, upload, comment, save, request, approve', async () =>
   const recipient = client();
   const donorId = await register(donor, 'donor1');
   const recipientId = await register(recipient, 'recip1', 'recipient');
-  const categoryId = db.prepare('SELECT id FROM categories LIMIT 1').get().id;
+  const categoryId = (await db.get('SELECT id FROM categories LIMIT 1')).id;
 
   // Non-image uploads are refused.
   await donor.get('/posts/new');
@@ -135,6 +134,7 @@ test('donation flow: post, upload, comment, save, request, approve', async () =>
     multipart: { type: 'donation', title: 'Bad upload', content: 'This is not really an image.', category_id: String(categoryId), image: new Blob(['<?php echo 1; ?>'], { type: 'image/png' }) },
   });
   assert.equal(fake.status, 400);
+  assert.match(fake.text, /Images must be JPEG/);
 
   const created = await donor.post('/posts', {
     multipart: {
@@ -145,13 +145,16 @@ test('donation flow: post, upload, comment, save, request, approve', async () =>
   assert.equal(created.status, 302, created.text);
   const postUrl = created.location;
   const postId = Number(postUrl.split('/').pop());
-  const stored = db.prepare('SELECT * FROM posts WHERE id = ?').get(postId);
+  const stored = await db.get('SELECT * FROM posts WHERE id = ?', [postId]);
   assert.match(stored.image, /^posts\/[a-f0-9]{32}\.png$/);
-  assert.ok(fs.existsSync(path.join(dataDir, 'uploads', stored.image)));
-  assert.equal((await donor.get(`/uploads/${stored.image}`)).status, 200);
+  const image = await donor.get(`/uploads/${stored.image}`);
+  assert.equal(image.status, 200);
+  assert.equal(image.headers.get('content-type'), 'image/png');
+  assert.match(image.headers.get('cache-control'), /immutable/);
+  assert.equal((await donor.get('/uploads/posts/..%2f..%2fpackage.json')).status, 404);
 
-  // Feed shows it; search is literal (no wildcard injection).
-  assert.match((await recipient.get('/feed?search=wheelchair')).text, /Spare wheelchair/);
+  // Feed shows it; search is case-insensitive and literal (no wildcard injection).
+  assert.match((await recipient.get('/feed?search=WHEELchair')).text, /Spare wheelchair/);
   assert.doesNotMatch((await recipient.get('/feed?search=%25zzz')).text, /Spare wheelchair/);
 
   // Markup in user content is escaped.
@@ -175,64 +178,69 @@ test('donation flow: post, upload, comment, save, request, approve', async () =>
   await donor.post(`${postUrl}/request`, { form: { notes: 'mine' } });
   await recipient.post(`${postUrl}/request`, { form: { notes: 'I need this' } });
   await recipient.post(`${postUrl}/request`, { form: { notes: 'again' } });
-  const requests = db.prepare('SELECT * FROM donation_requests WHERE post_id = ?').all(postId);
+  const requests = await db.all('SELECT * FROM donation_requests WHERE post_id = ?', [postId]);
   assert.equal(requests.length, 1);
   assert.equal(requests[0].requester_id, recipientId);
+  const requestStatus = async () => (await db.get('SELECT status FROM donation_requests WHERE id = ?', [requests[0].id])).status;
 
   // The requester cannot approve their own request; the donor can.
   await recipient.post(`/requests/${requests[0].id}/status`, { form: { status: 'approved' } });
-  assert.equal(db.prepare('SELECT status FROM donation_requests WHERE id = ?').get(requests[0].id).status, 'pending');
+  assert.equal(await requestStatus(), 'pending');
   assert.match((await donor.get('/requests')).text, /I need this/);
+  assert.match((await donor.get('/feed')).text, /Requests <span class="count">1<\/span>/);
   await donor.post(`/requests/${requests[0].id}/status`, { form: { status: 'approved' } });
-  assert.equal(db.prepare('SELECT status FROM donation_requests WHERE id = ?').get(requests[0].id).status, 'approved');
-  assert.equal(db.prepare('SELECT status FROM posts WHERE id = ?').get(postId).status, 'pending');
+  assert.equal(await requestStatus(), 'approved');
+  assert.equal((await db.get('SELECT status FROM posts WHERE id = ?', [postId])).status, 'pending');
 
-  for (const url of ['/activity', '/my-posts', '/members', '/profile', `/users/${donorId}`, '/settings', '/profile/edit', '/messages']) {
+  for (const url of ['/activity', '/my-posts', '/members', '/members?sort=donations&search=don', '/profile', `/users/${donorId}`, '/settings', '/profile/edit', '/messages']) {
     assert.equal((await recipient.get(url)).status, 200, url);
   }
 
-  // Deleting the post removes its image from disk.
+  // Profile edit with an avatar upload.
+  await recipient.get('/profile/edit');
+  const edited = await recipient.post('/profile/edit', {
+    multipart: { username: 'recip1', about: 'Hello there', profile_image: new Blob([PNG], { type: 'image/png' }) },
+  });
+  assert.equal(edited.status, 302, edited.text);
+  assert.match((await db.get('SELECT profile_image FROM users WHERE id = ?', [recipientId])).profile_image, /^profiles\//);
+
+  // Deleting the post removes its image.
   await donor.get(postUrl);
   assert.equal((await donor.post(`${postUrl}/delete`, { form: {} })).status, 302);
-  await new Promise((resolve) => setTimeout(resolve, 50));
-  assert.ok(!fs.existsSync(path.join(dataDir, 'uploads', stored.image)));
+  assert.equal((await donor.get(`/uploads/${stored.image}`)).status, 404);
 });
 
-test('chat delivers messages over an authenticated WebSocket', async () => {
+test('chat: send, fetch updates, unread badge and read state', async () => {
   const a = client();
   const b = client();
   const aId = await register(a, 'chat_a');
   const bId = await register(b, 'chat_b');
-  const wsUrl = base.replace('http', 'ws') + '/ws';
 
-  // No session cookie: refused.
-  await assert.rejects(new Promise((resolve, reject) => {
-    const ws = new WebSocket(wsUrl);
-    ws.on('open', resolve);
-    ws.on('error', reject);
-  }));
+  await a.get(`/messages/${bId}`);
+  const sent = JSON.parse((await a.post(`/messages/${bId}`, { json: { message: 'hello there' } })).text);
+  assert.equal(sent.success, true);
+  assert.equal(sent.message.body, 'hello there');
+  assert.equal((await a.post(`/messages/${aId}`, { json: { message: 'to myself' } })).status, 400);
+  assert.equal((await a.post(`/messages/${bId}`, { json: { message: '   ' } })).status, 400);
 
-  const open = (c) => new Promise((resolve, reject) => {
-    const ws = new WebSocket(wsUrl, { headers: { cookie: c.cookie } });
-    ws.on('open', () => resolve(ws));
-    ws.on('error', reject);
-  });
-  const wsA = await open(a);
-  const wsB = await open(b);
-  const received = new Promise((resolve) => wsB.on('message', (raw) => resolve(JSON.parse(raw.toString()))));
-  wsA.send(JSON.stringify({ type: 'message', to: bId, body: 'hello there' }));
-  const payload = await received;
-  assert.equal(payload.message.body, 'hello there');
-  assert.equal(payload.message.sender_id, aId);
-  wsA.close();
-  wsB.close();
-
-  // Unread badge, then history on open; HTTP fallback also works.
+  // The recipient sees an unread badge, then the message, then no badge.
   assert.match((await b.get('/feed')).text, /Messages <span class="count">1<\/span>/);
+  const updates = JSON.parse((await b.get(`/messages/${aId}/updates?after=0`, { headers: { accept: 'application/json' } })).text);
+  assert.equal(updates.messages.length, 1);
+  assert.equal(updates.messages[0].sender_id, aId);
+  assert.doesNotMatch((await b.get('/feed')).text, /Messages <span class="count">/);
   assert.match((await b.get(`/messages/${aId}`)).text, /hello there/);
-  const reply = await b.post(`/messages/${aId}`, { json: { message: 'hi back' } });
-  assert.equal(JSON.parse(reply.text).success, true);
-  assert.match((await a.get(`/messages/${bId}`)).text, /hi back/);
+
+  // Only newer messages come back for a given cursor.
+  await b.post(`/messages/${aId}`, { json: { message: 'hi back' } });
+  const newer = JSON.parse((await a.get(`/messages/${bId}/updates?after=${sent.message.id}`)).text);
+  assert.deepEqual(newer.messages.map((m) => m.body), ['hi back']);
+
+  // A third member cannot read the conversation.
+  const c = client();
+  await register(c, 'chat_c');
+  const snoop = JSON.parse((await c.get(`/messages/${aId}/updates?after=0`)).text);
+  assert.deepEqual(snoop.messages, []);
 });
 
 test('admin area: access control, reports, blocking and settings', async () => {
@@ -241,26 +249,32 @@ test('admin area: access control, reports, blocking and settings', async () => {
   const adminId = await register(admin, 'boss');
   const userId = await register(user, 'troll');
   assert.equal((await admin.get('/admin')).status, 403);
-  db.prepare("UPDATE users SET role = 'admin' WHERE id = ?").run(adminId);
+  await db.run("UPDATE users SET role = 'admin' WHERE id = ?", [adminId]);
 
-  for (const url of ['/admin', '/admin/users', '/admin/posts', '/admin/reports', '/admin/categories', '/admin/settings']) {
+  for (const url of ['/admin', '/admin/users', '/admin/users?search=tro&role=donor', '/admin/posts', '/admin/posts?search=x', '/admin/reports', '/admin/categories', '/admin/settings']) {
     assert.equal((await admin.get(url)).status, 200, url);
     assert.equal((await user.get(url)).status, 403, url);
   }
 
   // The user posts, the admin (as a member) reports it, then removes it.
-  const categoryId = db.prepare('SELECT id FROM categories LIMIT 1').get().id;
+  const categoryId = (await db.get('SELECT id FROM categories LIMIT 1')).id;
   await user.get('/posts/new');
   const created = await user.post('/posts', { multipart: { type: 'request', title: 'Buy cheap pills', content: 'Totally legitimate offer, click here.', category_id: String(categoryId) } });
   const postId = Number(created.location.split('/').pop());
+  assert.match((await admin.get('/admin')).text, /Buy cheap pills/);
   await admin.get(`/report?type=post&id=${postId}`);
   await admin.post('/report', { form: { content_type: 'post', content_id: String(postId), type: 'spam', reason: 'Obvious spam' } });
-  const report = db.prepare('SELECT * FROM reports WHERE content_id = ?').get(postId);
+  const report = await db.get('SELECT * FROM reports WHERE content_id = ?', [postId]);
   assert.equal(report.reported_user_id, userId);
   assert.match((await admin.get('/admin/reports')).text, /Obvious spam/);
   await admin.post(`/admin/reports/${report.id}`, { form: { action: 'delete_content' } });
-  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM posts WHERE id = ?').get(postId).n, 0);
-  assert.equal(db.prepare('SELECT status FROM reports WHERE id = ?').get(report.id).status, 'resolved');
+  assert.equal((await db.get('SELECT COUNT(*) AS n FROM posts WHERE id = ?', [postId])).n, 0);
+  assert.equal((await db.get('SELECT status FROM reports WHERE id = ?', [report.id])).status, 'resolved');
+
+  // Duplicate category names are refused, whatever the letter case.
+  await admin.get('/admin/categories');
+  await admin.post('/admin/categories', { form: { action: 'add', name: 'WOUND CARE' } });
+  assert.equal((await db.get("SELECT COUNT(*) AS n FROM categories WHERE lower(name) = 'wound care'")).n, 1);
 
   // Blocking signs the member out and prevents signing back in.
   await admin.post(`/admin/users/${userId}`, { form: { action: 'block' } });
@@ -270,7 +284,7 @@ test('admin area: access control, reports, blocking and settings', async () => {
 
   // Admins cannot demote themselves.
   await admin.post(`/admin/users/${adminId}`, { form: { action: 'role', role: 'donor' } });
-  assert.equal(db.prepare('SELECT role FROM users WHERE id = ?').get(adminId).role, 'admin');
+  assert.equal((await db.get('SELECT role FROM users WHERE id = ?', [adminId])).role, 'admin');
 
   // Maintenance mode locks out everyone except admins.
   await admin.get('/admin/settings');
@@ -279,4 +293,18 @@ test('admin area: access control, reports, blocking and settings', async () => {
   assert.equal((await admin.get('/feed')).status, 200);
   await admin.post('/admin/settings', { form: { site_name: 'Helpie', posts_per_page: '12', enable_registration: '1' } });
   assert.equal((await client().get('/')).status, 200);
+});
+
+test('sign-in attempts are rate limited', async () => {
+  const c = client();
+  await c.get('/login');
+  let last;
+  for (let i = 0; i < 12; i += 1) last = await c.post('/login', { form: { identifier: 'nobody', password: 'wrong-password' } });
+  assert.equal(last.status, 429);
+});
+
+test('health check reports database connectivity', async () => {
+  const res = await client().get('/healthz');
+  assert.equal(res.status, 200);
+  assert.deepEqual(JSON.parse(res.text), { ok: true });
 });

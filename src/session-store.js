@@ -4,42 +4,38 @@ const { db } = require('./db');
 
 const DAY = 24 * 3600 * 1000;
 
-// Minimal express-session store backed by the app's SQLite database.
-class SqliteStore extends session.Store {
-  constructor() {
-    super();
-    this.getStmt = db.prepare('SELECT data FROM sessions WHERE sid = ? AND expires > ?');
-    this.setStmt = db.prepare(
-      'INSERT INTO sessions (sid, data, expires) VALUES (?, ?, ?) ' +
-      'ON CONFLICT(sid) DO UPDATE SET data = excluded.data, expires = excluded.expires');
-    this.delStmt = db.prepare('DELETE FROM sessions WHERE sid = ?');
-    this.pruneStmt = db.prepare('DELETE FROM sessions WHERE expires <= ?');
-    this.timer = setInterval(() => this.pruneStmt.run(Date.now()), 3600 * 1000);
-    this.timer.unref();
-  }
-
+// express-session store backed by the app's Postgres database, so sessions
+// survive across serverless function instances.
+class PostgresStore extends session.Store {
   get(sid, cb) {
-    try {
-      const row = this.getStmt.get(sid, Date.now());
-      cb(null, row ? JSON.parse(row.data) : null);
-    } catch (err) { cb(err); }
+    db.get('SELECT data FROM sessions WHERE sid = ? AND expires > ?', [sid, Date.now()])
+      .then((row) => cb(null, row ? JSON.parse(row.data) : null), cb);
   }
 
   set(sid, sess, cb = () => {}) {
-    try {
-      const expires = sess.cookie && sess.cookie.expires
-        ? new Date(sess.cookie.expires).getTime()
-        : Date.now() + DAY;
-      this.setStmt.run(sid, JSON.stringify(sess), expires);
-      cb(null);
-    } catch (err) { cb(err); }
+    const expires = sess.cookie && sess.cookie.expires ? new Date(sess.cookie.expires).getTime() : Date.now() + DAY;
+    db.run(
+      `INSERT INTO sessions (sid, user_id, data, expires) VALUES (?, ?, ?, ?)
+       ON CONFLICT (sid) DO UPDATE SET user_id = excluded.user_id, data = excluded.data, expires = excluded.expires`,
+      [sid, sess.userId || null, JSON.stringify(sess), expires])
+      .then(() => {
+        // Occasionally sweep out expired sessions and rate-limit counters.
+        if (Math.random() < 0.02) {
+          db.run('DELETE FROM sessions WHERE expires <= ?', [Date.now()]).catch(() => {});
+          db.run('DELETE FROM rate_limits WHERE expires <= ?', [Date.now()]).catch(() => {});
+        }
+        cb(null);
+      }, cb);
   }
 
-  touch(sid, sess, cb) { this.set(sid, sess, cb); }
+  touch(sid, sess, cb = () => {}) {
+    const expires = sess.cookie && sess.cookie.expires ? new Date(sess.cookie.expires).getTime() : Date.now() + DAY;
+    db.run('UPDATE sessions SET expires = ? WHERE sid = ?', [expires, sid]).then(() => cb(null), cb);
+  }
 
   destroy(sid, cb = () => {}) {
-    try { this.delStmt.run(sid); cb(null); } catch (err) { cb(err); }
+    db.run('DELETE FROM sessions WHERE sid = ?', [sid]).then(() => cb(null), cb);
   }
 }
 
-module.exports = SqliteStore;
+module.exports = PostgresStore;

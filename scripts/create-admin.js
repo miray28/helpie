@@ -2,30 +2,33 @@
 'use strict';
 // Creates an administrator, or promotes an existing account.
 //   npm run create-admin -- <username> <email> [password]
-// If the email already belongs to an account it is promoted to admin and the
-// password is left unchanged. When no password is given one is generated.
+// Runs against DATABASE_URL when it is set, otherwise the local database.
+// If the account already exists it is promoted and its password left alone.
+// When no password is given one is generated and printed.
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const { db } = require('../src/db');
+const { newTopic } = require('../src/chat');
 
-const [username, email, passwordArg] = process.argv.slice(2);
-if (!username || !email) {
-  console.error('Usage: npm run create-admin -- <username> <email> [password]');
-  process.exit(1);
-}
+async function main() {
+  const [username, email, passwordArg] = process.argv.slice(2);
+  if (!username || !email) throw new Error('Usage: npm run create-admin -- <username> <email> [password]');
 
-const existing = db.prepare('SELECT id, username FROM users WHERE email = ? OR username = ?').get(email, username);
-if (existing) {
-  db.prepare("UPDATE users SET role = 'admin', verified = 1, blocked = 0 WHERE id = ?").run(existing.id);
-  console.log(`Promoted existing account "${existing.username}" to admin.`);
-} else {
-  const password = passwordArg || crypto.randomBytes(9).toString('base64url');
-  if (password.length < 8) {
-    console.error('Password must be at least 8 characters.');
-    process.exit(1);
+  const existing = await db.get('SELECT id, username FROM users WHERE lower(email) = lower(?) OR lower(username) = lower(?)', [email, username]);
+  if (existing) {
+    await db.run("UPDATE users SET role = 'admin', verified = 1, blocked = 0 WHERE id = ?", [existing.id]);
+    console.log(`Promoted existing account "${existing.username}" to admin.`);
+    return;
   }
-  db.prepare("INSERT INTO users (username, email, password_hash, role, verified, created_at) VALUES (?, ?, ?, 'admin', 1, ?)")
-    .run(username, email.toLowerCase(), bcrypt.hashSync(password, 12), Date.now());
+  const password = passwordArg || crypto.randomBytes(9).toString('base64url');
+  if (password.length < 8) throw new Error('Password must be at least 8 characters.');
+  await db.run(
+    "INSERT INTO users (username, email, password_hash, role, verified, realtime_topic, created_at) VALUES (?, ?, ?, 'admin', 1, ?, ?)",
+    [username, email.toLowerCase(), await bcrypt.hash(password, 11), newTopic(), Date.now()]);
   console.log(`Created admin "${username}".`);
   if (!passwordArg) console.log(`Generated password: ${password}`);
 }
+
+main()
+  .catch((err) => { console.error(err.message); process.exitCode = 1; })
+  .finally(() => db.close());

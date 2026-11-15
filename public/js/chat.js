@@ -1,4 +1,7 @@
 'use strict';
+// Chat client. New messages are fetched from /messages/:id/updates. A Supabase
+// Realtime "poke" triggers that fetch instantly; a slow poll is the safety net
+// so the conversation keeps updating even if the realtime socket is down.
 (function () {
   const log = document.querySelector('[data-chat-log]');
   const form = document.querySelector('[data-chat-form]');
@@ -7,11 +10,14 @@
   const me = Number(log.dataset.me);
   const partner = Number(log.dataset.partner);
   const input = form.querySelector('input');
+  const button = form.querySelector('button');
   const status = document.querySelector('[data-chat-status]');
   const csrf = document.querySelector('meta[name="csrf-token"]').content;
   const seen = new Set();
-  let socket = null;
-  let retry = 0;
+  let lastId = Number(log.dataset.last) || 0;
+  let live = false;
+  let fetching = false;
+  let again = false;
 
   const formatTime = (ms) => new Date(Number(ms)).toLocaleString([], { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' });
   log.querySelectorAll('time[data-time]').forEach((el) => { el.textContent = formatTime(el.dataset.time); });
@@ -19,8 +25,9 @@
   scrollDown();
 
   function addMessage(message) {
-    if (seen.has(message.id)) return;
+    if (seen.has(message.id) || message.id <= Number(log.dataset.last)) return;
     seen.add(message.id);
+    lastId = Math.max(lastId, message.id);
     const empty = log.querySelector('[data-chat-empty]');
     if (empty) empty.remove();
     const bubble = document.createElement('div');
@@ -33,38 +40,72 @@
     scrollDown();
   }
 
+  async function fetchUpdates() {
+    if (fetching) { again = true; return; }
+    fetching = true;
+    try {
+      const res = await fetch(`/messages/${partner}/updates?after=${lastId}`, { headers: { Accept: 'application/json' } });
+      if (res.status === 401) { location.reload(); return; }
+      const data = await res.json();
+      if (data.success) data.messages.forEach(addMessage);
+    } catch (err) {
+      /* offline: the next poll will catch up */
+    } finally {
+      fetching = false;
+      if (again) { again = false; fetchUpdates(); }
+    }
+  }
+
+  // Poll: slowly when realtime is connected, faster when it is not.
+  (function poll() {
+    const delay = document.hidden ? 30000 : live ? 20000 : 4000;
+    setTimeout(() => { fetchUpdates().finally(poll); }, delay);
+  })();
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) fetchUpdates(); });
+
+  // Supabase Realtime (Phoenix channels over WebSocket), broadcast only.
+  const url = log.dataset.realtimeUrl;
+  const topic = log.dataset.realtimeTopic;
+  let retry = 0;
   function connect() {
-    const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
-    socket = new WebSocket(`${scheme}://${location.host}/ws`);
-    socket.addEventListener('open', () => { retry = 0; status.textContent = 'Connected'; });
+    let ref = 0;
+    let heartbeat = null;
+    const socket = new WebSocket(url);
+    const push = (channel, event, payload) => socket.send(JSON.stringify({ topic: channel, event, payload, ref: String(++ref) }));
+    socket.addEventListener('open', () => {
+      push(`realtime:${topic}`, 'phx_join', {
+        config: { broadcast: { ack: false, self: false }, presence: { key: '' }, postgres_changes: [], private: false },
+      });
+      heartbeat = setInterval(() => push('phoenix', 'heartbeat', {}), 25000);
+    });
     socket.addEventListener('message', (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === 'error') { status.textContent = data.message; return; }
-      if (data.type !== 'message') return;
-      const m = data.message;
-      const inThisChat = (m.sender_id === partner && m.receiver_id === me) || (m.sender_id === me && m.receiver_id === partner);
-      if (!inThisChat) return;
-      addMessage(m);
-      if (m.sender_id === partner) socket.send(JSON.stringify({ type: 'read', from: partner }));
+      let data;
+      try { data = JSON.parse(event.data); } catch (err) { return; }
+      if (data.event === 'phx_reply' && data.topic === `realtime:${topic}` && data.payload && data.payload.status === 'ok') {
+        live = true;
+        retry = 0;
+        status.textContent = 'Live';
+        fetchUpdates();
+      } else if (data.event === 'broadcast') {
+        fetchUpdates();
+      }
     });
     socket.addEventListener('close', () => {
-      status.textContent = 'Reconnecting…';
+      clearInterval(heartbeat);
+      live = false;
+      status.textContent = '';
       retry = Math.min(retry + 1, 6);
-      setTimeout(connect, retry * 1000);
+      setTimeout(connect, retry * 2000);
     });
   }
-  connect();
+  if (url && topic && 'WebSocket' in window) connect();
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     const body = input.value.trim();
     if (!body) return;
     input.value = '';
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify({ type: 'message', to: partner, body }));
-      return;
-    }
-    // Fallback when the live connection is down.
+    button.disabled = true;
     try {
       const res = await fetch(`/messages/${partner}`, {
         method: 'POST',
@@ -74,9 +115,13 @@
       const data = await res.json();
       if (!data.success) throw new Error(data.message);
       addMessage(data.message);
+      if (!live) status.textContent = '';
     } catch (err) {
       input.value = body;
-      status.textContent = 'Message not sent. Check your connection and try again.';
+      status.textContent = err.message && !/fetch|JSON/i.test(err.message) ? err.message : 'Message not sent. Check your connection and try again.';
+    } finally {
+      button.disabled = false;
+      input.focus();
     }
   });
 })();

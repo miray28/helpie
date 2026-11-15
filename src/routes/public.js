@@ -6,12 +6,12 @@ const { str, isEmail } = require('../helpers');
 
 const router = express.Router();
 
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   if (req.user) return res.redirect('/feed');
-  const stats = db.prepare(`
+  const stats = await db.get(`
     SELECT (SELECT COUNT(*) FROM posts WHERE type = 'donation') AS donations,
            (SELECT COUNT(*) FROM posts WHERE type = 'request') AS requests,
-           (SELECT COUNT(*) FROM users WHERE blocked = 0) AS members`).get();
+           (SELECT COUNT(*) FROM users WHERE blocked = 0) AS members`);
   res.render('landing', { title: '', stats });
 });
 
@@ -22,12 +22,13 @@ router.get('/privacy', (req, res) => res.render('privacy', { title: 'Privacy pol
 router.get('/contact', (req, res) => res.render('contact', { title: 'Contact us', form: {} }));
 
 const contactLimit = rateLimit({
+  name: 'contact',
   windowMs: 60 * 60 * 1000,
   max: 5,
   message: 'You have sent several messages already. Please try again later.',
 });
 
-router.post('/contact', contactLimit, (req, res) => {
+router.post('/contact', contactLimit, async (req, res) => {
   const form = {
     name: str(req.body.name, 100),
     email: str(req.body.email, 254),
@@ -41,8 +42,8 @@ router.post('/contact', contactLimit, (req, res) => {
     res.locals.flash.push({ type: 'error', message: error });
     return res.status(400).render('contact', { title: 'Contact us', form });
   }
-  db.prepare('INSERT INTO contact_messages (name, email, subject, message, created_at) VALUES (?, ?, ?, ?, ?)')
-    .run(form.name, form.email, form.subject, form.message, Date.now());
+  await db.run('INSERT INTO contact_messages (name, email, subject, message, created_at) VALUES (?, ?, ?, ?, ?)',
+    [form.name, form.email, form.subject, form.message, Date.now()]);
   flash(req, 'success', 'Thanks for your message. We will get back to you soon.');
   res.redirect('/contact');
 });

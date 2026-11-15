@@ -1,0 +1,14 @@
+[build]
+  command = "echo 'No build step: static assets are served from public/'"
+  publish = "public"
+
+[functions]
+  directory = "netlify/functions"
+  # Templates are read from disk at runtime, so they must be shipped explicitly.
+  included_files = ["views/**"]
+
+# Anything that is not a static file is handled by the Express app.
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/app"
+  status = 200

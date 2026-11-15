@@ -40,8 +40,8 @@
       const preview = input.closest('.field').querySelector('[data-preview]');
       const file = input.files && input.files[0];
       if (!preview || !file) return;
-      if (file.size > 5 * 1024 * 1024) {
-        window.alert('Images must be 5 MB or smaller.');
+      if (file.size > 4 * 1024 * 1024) {
+        window.alert('Images must be 4 MB or smaller.');
         input.value = '';
         return;
       }

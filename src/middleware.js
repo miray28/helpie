@@ -3,39 +3,37 @@ const crypto = require('crypto');
 const { db, getSettings } = require('./db');
 const helpers = require('./helpers');
 
-const userById = db.prepare('SELECT * FROM users WHERE id = ?');
-const unreadCount = db.prepare(`
-  SELECT COUNT(*) AS n FROM messages m
-  JOIN conversations c ON c.id = m.conversation_id
-  WHERE (c.user1_id = @me OR c.user2_id = @me) AND m.sender_id != @me AND m.read_at IS NULL`);
-const pendingRequestCount = db.prepare(`
-  SELECT COUNT(*) AS n FROM donation_requests dr
-  JOIN posts p ON p.id = dr.post_id
-  WHERE p.user_id = ? AND dr.status = 'pending'`);
-
 function flash(req, type, message) {
   req.session.flash = req.session.flash || [];
   req.session.flash.push({ type, message });
 }
 
 // Loads the signed-in user and everything the templates need on every page.
-function locals(req, res, next) {
-  let user = null;
-  if (req.session.userId) {
-    user = userById.get(req.session.userId) || null;
-    if (!user || user.blocked) {
-      delete req.session.userId;
-      if (user) flash(req, 'error', 'Your account has been suspended.');
-      user = null;
-    }
+async function locals(req, res, next) {
+  const [settings, user] = await Promise.all([
+    getSettings(),
+    req.session.userId
+      ? db.get(`
+          SELECT u.*,
+            (SELECT COUNT(*) FROM messages m JOIN conversations c ON c.id = m.conversation_id
+              WHERE (c.user1_id = u.id OR c.user2_id = u.id) AND m.sender_id != u.id AND m.read_at IS NULL) AS unread_messages,
+            (SELECT COUNT(*) FROM donation_requests dr JOIN posts p ON p.id = dr.post_id
+              WHERE p.user_id = u.id AND dr.status = 'pending') AS pending_requests
+          FROM users u WHERE u.id = ?`, [req.session.userId])
+      : null,
+  ]);
+
+  req.user = user || null;
+  if (req.session.userId && (!user || user.blocked)) {
+    delete req.session.userId;
+    if (user) flash(req, 'error', 'Your account has been suspended.');
+    req.user = null;
   }
-  req.user = user;
 
   if (!req.session.csrfToken) req.session.csrfToken = crypto.randomBytes(32).toString('hex');
 
-  const settings = getSettings();
   res.locals.settings = settings;
-  res.locals.currentUser = user;
+  res.locals.currentUser = req.user;
   res.locals.csrfToken = req.session.csrfToken;
   res.locals.path = req.path;
   res.locals.query = req.query;
@@ -43,8 +41,8 @@ function locals(req, res, next) {
   res.locals.title = '';
   res.locals.flash = req.session.flash || [];
   delete req.session.flash;
-  res.locals.badges = user
-    ? { messages: unreadCount.get({ me: user.id }).n, requests: pendingRequestCount.get(user.id).n }
+  res.locals.badges = req.user
+    ? { messages: req.user.unread_messages, requests: req.user.pending_requests }
     : { messages: 0, requests: 0 };
   next();
 }
@@ -65,20 +63,20 @@ function csrfError() {
   return err;
 }
 
+const submittedToken = (req) => (req.body && req.body._csrf) || req.get('x-csrf-token');
+
 // CSRF check for every state-changing request.
 function csrf(req, res, next) {
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
   if (req.is('multipart/form-data')) {
     return UPLOAD_PATHS.test(req.path) ? next() : next(csrfError());
   }
-  const token = (req.body && req.body._csrf) || req.get('x-csrf-token');
-  return tokensMatch(token, req.session.csrfToken) ? next() : next(csrfError());
+  return tokensMatch(submittedToken(req), req.session.csrfToken) ? next() : next(csrfError());
 }
 
 // Runs after multer on upload routes.
 function csrfAfterUpload(req, res, next) {
-  const token = (req.body && req.body._csrf) || req.get('x-csrf-token');
-  return tokensMatch(token, req.session.csrfToken) ? next() : next(csrfError());
+  return tokensMatch(submittedToken(req), req.session.csrfToken) ? next() : next(csrfError());
 }
 
 function wantsJson(req) {
@@ -104,7 +102,7 @@ function requireAdmin(req, res, next) {
 function maintenance(req, res, next) {
   if (res.locals.settings.maintenance_mode !== '1') return next();
   if (req.user && req.user.role === 'admin') return next();
-  if (['/login', '/logout'].includes(req.path)) return next();
+  if (['/login', '/logout', '/healthz'].includes(req.path)) return next();
   res.status(503).render('error', {
     title: 'Back soon',
     status: 503,
@@ -112,33 +110,29 @@ function maintenance(req, res, next) {
   });
 }
 
-// Small in-memory limiter for sign-in attempts and other abuse-prone forms.
-function rateLimit({ windowMs, max, message }) {
-  const hits = new Map();
-  setInterval(() => {
-    const now = Date.now();
-    for (const [key, entry] of hits) if (entry.reset <= now) hits.delete(key);
-  }, windowMs).unref();
+// The visitor's address. On Netlify the real client IP arrives in a header
+// set by the platform (it cannot be spoofed by the visitor).
+function clientIp(req) {
+  return req.get('x-nf-client-connection-ip') || req.ip || 'unknown';
+}
 
-  return (req, res, next) => {
-    const key = req.ip;
+// Fixed-window rate limiter stored in the database, so the limit holds across
+// serverless function instances.
+function rateLimit({ name, windowMs, max, message }) {
+  return async (req, res, next) => {
     const now = Date.now();
-    let entry = hits.get(key);
-    if (!entry || entry.reset <= now) {
-      entry = { count: 0, reset: now + windowMs };
-      hits.set(key, entry);
-    }
-    entry.count += 1;
-    if (entry.count > max) {
-      if (wantsJson(req)) return res.status(429).json({ success: false, message });
-      flash(req, 'error', message);
-      return res.redirect(req.get('referer') ? helpers.safeRedirect(new URL(req.get('referer'), 'http://x').pathname, '/') : '/');
-    }
-    next();
+    const row = await db.get(`
+      INSERT INTO rate_limits (key, count, expires) VALUES (@key, 1, @expires)
+      ON CONFLICT (key) DO UPDATE SET
+        count = CASE WHEN rate_limits.expires <= @now THEN 1 ELSE rate_limits.count + 1 END,
+        expires = CASE WHEN rate_limits.expires <= @now THEN @expires ELSE rate_limits.expires END
+      RETURNING count`, { key: `${name}:${clientIp(req)}`, expires: now + windowMs, now });
+    if (row.count <= max) return next();
+    if (wantsJson(req)) return res.status(429).json({ success: false, message });
+    res.status(429).render('error', { title: 'Slow down', status: 429, message });
   };
 }
 
 module.exports = {
-  flash, locals, csrf, csrfAfterUpload, requireLogin, requireAdmin,
-  maintenance, rateLimit, wantsJson,
+  flash, locals, csrf, csrfAfterUpload, requireLogin, requireAdmin, maintenance, rateLimit, wantsJson,
 };
