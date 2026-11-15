@@ -1,7 +1,5 @@
 'use strict';
-// Chat client. New messages are fetched from /messages/:id/updates. A Supabase
-// Realtime "poke" triggers that fetch instantly; a slow poll is the safety net
-// so the conversation keeps updating even if the realtime socket is down.
+// Chat client. New messages are fetched from /messages/:id/updates on a short poll.
 (function () {
   const log = document.querySelector('[data-chat-log]');
   const form = document.querySelector('[data-chat-form]');
@@ -15,7 +13,6 @@
   const csrf = document.querySelector('meta[name="csrf-token"]').content;
   const seen = new Set();
   let lastId = Number(log.dataset.last) || 0;
-  let live = false;
   let fetching = false;
   let again = false;
 
@@ -56,49 +53,11 @@
     }
   }
 
-  // Poll: slowly when realtime is connected, faster when it is not.
+  // Poll for new messages: quickly while the tab is visible, slowly otherwise.
   (function poll() {
-    const delay = document.hidden ? 30000 : live ? 20000 : 4000;
-    setTimeout(() => { fetchUpdates().finally(poll); }, delay);
+    setTimeout(() => { fetchUpdates().finally(poll); }, document.hidden ? 30000 : 3000);
   })();
   document.addEventListener('visibilitychange', () => { if (!document.hidden) fetchUpdates(); });
-
-  // Supabase Realtime (Phoenix channels over WebSocket), broadcast only.
-  const url = log.dataset.realtimeUrl;
-  const topic = log.dataset.realtimeTopic;
-  let retry = 0;
-  function connect() {
-    let ref = 0;
-    let heartbeat = null;
-    const socket = new WebSocket(url);
-    const push = (channel, event, payload) => socket.send(JSON.stringify({ topic: channel, event, payload, ref: String(++ref) }));
-    socket.addEventListener('open', () => {
-      push(`realtime:${topic}`, 'phx_join', {
-        config: { broadcast: { ack: false, self: false }, presence: { key: '' }, postgres_changes: [], private: false },
-      });
-      heartbeat = setInterval(() => push('phoenix', 'heartbeat', {}), 25000);
-    });
-    socket.addEventListener('message', (event) => {
-      let data;
-      try { data = JSON.parse(event.data); } catch (err) { return; }
-      if (data.event === 'phx_reply' && data.topic === `realtime:${topic}` && data.payload && data.payload.status === 'ok') {
-        live = true;
-        retry = 0;
-        status.textContent = 'Live';
-        fetchUpdates();
-      } else if (data.event === 'broadcast') {
-        fetchUpdates();
-      }
-    });
-    socket.addEventListener('close', () => {
-      clearInterval(heartbeat);
-      live = false;
-      status.textContent = '';
-      retry = Math.min(retry + 1, 6);
-      setTimeout(connect, retry * 2000);
-    });
-  }
-  if (url && topic && 'WebSocket' in window) connect();
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -115,7 +74,7 @@
       const data = await res.json();
       if (!data.success) throw new Error(data.message);
       addMessage(data.message);
-      if (!live) status.textContent = '';
+      status.textContent = '';
     } catch (err) {
       input.value = body;
       status.textContent = err.message && !/fetch|JSON/i.test(err.message) ? err.message : 'Message not sent. Check your connection and try again.';

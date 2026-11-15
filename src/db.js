@@ -4,7 +4,7 @@ const path = require('path');
 const config = require('./config');
 
 // Thin async wrapper so the rest of the app doesn't care whether it is
-// talking to Supabase (through `pg`) or the embedded Postgres used locally.
+// talking to a hosted Postgres (through `pg`) or the embedded one used locally.
 //
 //   db.all(sql, params)  -> rows
 //   db.get(sql, params)  -> first row or undefined
@@ -42,19 +42,19 @@ function wrap(query) {
   };
 }
 
-const MIGRATIONS_DIR = path.join(config.root, 'supabase', 'migrations');
+const MIGRATIONS_DIR = path.join(config.root, 'netlify', 'database', 'migrations');
 
-function createSupabase() {
+function createHosted() {
   const { Pool, types } = require('pg');
   types.setTypeParser(20, Number); // bigint (timestamps, counts) -> JS number
   const pool = new Pool({
     connectionString: config.databaseUrl,
     ssl: /localhost|127\.0\.0\.1/.test(config.databaseUrl) ? false : { rejectUnauthorized: false },
-    // Serverless: each function instance keeps a tiny pool and lets idle
-    // connections go, leaving the pooling to Supabase's connection pooler.
+    // Serverless: each function instance keeps one small pool for its lifetime.
+    // The generous connect timeout covers the database waking from idle.
     max: 3,
     idleTimeoutMillis: 10000,
-    connectionTimeoutMillis: 8000,
+    connectionTimeoutMillis: 20000,
   });
   pool.on('error', (err) => console.error('Database pool error:', err.message));
   const normalise = (r) => ({ rows: r.rows || [], rowCount: r.rowCount || 0 });
@@ -74,7 +74,7 @@ function createSupabase() {
         client.release();
       }
     },
-    ready: Promise.resolve(), // the schema is managed by Supabase migrations
+    ready: Promise.resolve(), // Netlify applies the migrations on deploy
     close: () => pool.end(),
   };
 }
@@ -104,7 +104,7 @@ function createEmbedded() {
   };
 }
 
-const db = config.databaseUrl ? createSupabase() : createEmbedded();
+const db = config.databaseUrl ? createHosted() : createEmbedded();
 
 const DEFAULT_SETTINGS = {
   site_name: 'Helpie',

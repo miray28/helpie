@@ -4,7 +4,6 @@ const bcrypt = require('bcryptjs');
 const { db } = require('../db');
 const { flash, rateLimit } = require('../middleware');
 const { str, isEmail, safeRedirect } = require('../helpers');
-const { newTopic } = require('../chat');
 
 const router = express.Router();
 
@@ -103,8 +102,8 @@ router.post('/register', registerLimit, async (req, res) => {
   }
 
   const row = await db.get(
-    'INSERT INTO users (username, email, password_hash, role, realtime_topic, created_at) VALUES (?, ?, ?, ?, ?, ?) RETURNING id',
-    [form.username, form.email, await bcrypt.hash(password, 11), form.role, newTopic(), Date.now()]);
+    'INSERT INTO users (username, email, password_hash, role, created_at) VALUES (?, ?, ?, ?, ?) RETURNING id',
+    [form.username, form.email, await bcrypt.hash(password, 11), form.role, Date.now()]);
   await signIn(req, row.id);
   flash(req, 'success', `Welcome to Helpie, ${form.username}!`);
   res.redirect('/feed');

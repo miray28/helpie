@@ -1,6 +1,5 @@
--- Helpie schema. Table names are unqualified on purpose: the tables live in
--- whichever schema is first on the search_path (a dedicated "helpie" schema on
--- Supabase, "public" for local development).
+-- Helpie schema. Applied automatically by Netlify on every deploy, and by the
+-- app itself when it runs against the embedded local database.
 -- All timestamps are bigint milliseconds since the Unix epoch.
 
 create table if not exists users (
@@ -17,7 +16,6 @@ create table if not exists users (
   verified        integer not null default 0,
   profile_visible integer not null default 1,
   blocked         integer not null default 0,
-  realtime_topic  text not null,
   created_at      bigint not null,
   last_login      bigint
 );

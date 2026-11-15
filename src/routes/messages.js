@@ -1,7 +1,6 @@
 'use strict';
 const express = require('express');
 const { db } = require('../db');
-const config = require('../config');
 const { requireLogin } = require('../middleware');
 const { toId } = require('../helpers');
 const chat = require('../chat');
@@ -21,18 +20,9 @@ function conversationList(me) {
     ORDER BY c.updated_at DESC`, { me });
 }
 
-// What the browser needs to listen for "new message" pokes on Supabase Realtime.
-function realtimeConfig(user) {
-  if (!config.supabaseUrl || !config.supabaseKey) return null;
-  return {
-    url: `${config.supabaseUrl.replace(/^http/, 'ws')}/realtime/v1/websocket?apikey=${encodeURIComponent(config.supabaseKey)}&vsn=1.0.0`,
-    topic: user.realtime_topic,
-  };
-}
-
 router.get('/messages', async (req, res) => {
   res.render('messages', {
-    title: 'Messages', conversations: await conversationList(req.user.id), partner: null, messages: [], realtime: null,
+    title: 'Messages', conversations: await conversationList(req.user.id), partner: null, messages: [],
   });
 });
 
@@ -56,7 +46,7 @@ router.get('/messages/:userId', async (req, res, next) => {
   ]);
   res.locals.badges.messages = unread.n;
   res.render('messages', {
-    title: `Chat with ${partner.username}`, conversations, partner, messages, realtime: realtimeConfig(req.user),
+    title: `Chat with ${partner.username}`, conversations, partner, messages,
   });
 });
 

@@ -18,9 +18,9 @@ async function main() {
   const now = Date.now();
 
   const user = async (name, role, about, address, verified, hoursAgo) => (await db.get(`
-    INSERT INTO users (username, email, password_hash, role, about, address, verified, realtime_topic, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
-    [name, `${name}@example.com`, hash, role, about, address, verified, chat.newTopic(), now - hoursAgo * HOUR])).id;
+    INSERT INTO users (username, email, password_hash, role, about, address, verified, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+    [name, `${name}@example.com`, hash, role, about, address, verified, now - hoursAgo * HOUR])).id;
 
   await user('admin', 'admin', 'Helpie moderator.', 'Remote', 1, 900);
   const sara = await user('sara', 'donor', 'Retired nurse clearing out a home-care cupboard.', 'Leeds', 1, 600);

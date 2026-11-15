@@ -2,13 +2,12 @@
 'use strict';
 // Creates an administrator, or promotes an existing account.
 //   npm run create-admin -- <username> <email> [password]
-// Runs against DATABASE_URL when it is set, otherwise the local database.
+// Runs against DATABASE_URL / NETLIFY_DB_URL when set, otherwise the local database.
 // If the account already exists it is promoted and its password left alone.
 // When no password is given one is generated and printed.
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const { db } = require('../src/db');
-const { newTopic } = require('../src/chat');
 
 async function main() {
   const [username, email, passwordArg] = process.argv.slice(2);
@@ -23,8 +22,8 @@ async function main() {
   const password = passwordArg || crypto.randomBytes(9).toString('base64url');
   if (password.length < 8) throw new Error('Password must be at least 8 characters.');
   await db.run(
-    "INSERT INTO users (username, email, password_hash, role, verified, realtime_topic, created_at) VALUES (?, ?, ?, 'admin', 1, ?, ?)",
-    [username, email.toLowerCase(), await bcrypt.hash(password, 11), newTopic(), Date.now()]);
+    "INSERT INTO users (username, email, password_hash, role, verified, created_at) VALUES (?, ?, ?, 'admin', 1, ?)",
+    [username, email.toLowerCase(), await bcrypt.hash(password, 11), Date.now()]);
   console.log(`Created admin "${username}".`);
   if (!passwordArg) console.log(`Generated password: ${password}`);
 }

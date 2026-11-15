@@ -17,13 +17,11 @@ app.engine('ejs', require('ejs').__express); // explicit so the bundler includes
 app.set('view engine', 'ejs');
 app.set('views', path.join(config.root, 'views'));
 
-const supabaseHost = config.supabaseUrl ? new URL(config.supabaseUrl).host : null;
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
       imgSrc: ["'self'", 'data:', 'blob:'],
-      connectSrc: ["'self'", ...(supabaseHost ? [`wss://${supabaseHost}`] : [])],
       objectSrc: ["'none'"],
       frameAncestors: ["'none'"],
       upgradeInsecureRequests: null,
