@@ -1,0 +1,38 @@
+<%- include('../partials/head') %>
+<div class="container page stack">
+  <%- include('../partials/admin-nav') %>
+  <form class="card pad" method="post" action="/admin/categories">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="action" value="add">
+    <h2>Add a category</h2>
+    <div class="form-grid">
+      <div class="field"><label for="name">Name</label><input id="name" name="name" type="text" required maxlength="60"></div>
+      <div class="field"><label for="description">Description</label><input id="description" name="description" type="text" maxlength="200"></div>
+    </div>
+    <button class="btn" type="submit">Add category</button>
+  </form>
+  <div class="card table-wrap">
+    <table>
+      <thead><tr><th>Name</th><th>Description</th><th>Posts</th><th><span class="sr-only">Actions</span></th></tr></thead>
+      <tbody>
+        <% categories.forEach((c) => { %>
+          <tr>
+            <td><input form="cat-<%= c.id %>" name="name" type="text" required maxlength="60" value="<%= c.name %>" aria-label="Name"></td>
+            <td><input form="cat-<%= c.id %>" name="description" type="text" maxlength="200" value="<%= c.description || '' %>" aria-label="Description"></td>
+            <td><%= c.post_count %></td>
+            <td class="actions">
+              <form class="inline" id="cat-<%= c.id %>" method="post" action="/admin/categories">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="action" value="edit"><input type="hidden" name="category_id" value="<%= c.id %>">
+                <button class="btn secondary small" type="submit">Save</button>
+              </form>
+              <form class="inline" method="post" action="/admin/categories" data-confirm="Delete this category?">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="action" value="delete"><input type="hidden" name="category_id" value="<%= c.id %>">
+                <button class="btn danger small" type="submit" <%= c.post_count ? 'disabled title="Has posts"' : '' %>>Delete</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>
+<%- include('../partials/foot') %>

@@ -1,0 +1,24 @@
+<%- include('partials/head') %>
+<div class="container narrow page">
+  <h1>Report <%= type === 'user' ? 'member' : type %></h1>
+  <form class="card pad" method="post" action="/report">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <input type="hidden" name="content_type" value="<%= type %>">
+    <input type="hidden" name="content_id" value="<%= target.id %>">
+    <p class="muted" style="margin-bottom:4px">You are reporting <%= type === 'user' ? 'the member' : `a ${type} by` %> <strong><%= target.username %></strong><%= type === 'user' ? '' : ':' %></p>
+    <% if (type !== 'user') { %><p class="quote" style="margin-bottom:16px"><%= target.label.length > 240 ? target.label.slice(0, 240) + '…' : target.label %></p><% } %>
+    <div class="field">
+      <label for="type">Reason</label>
+      <select id="type" name="type" required>
+        <option value="">Select a reason</option>
+        <option value="spam">Spam or misleading</option>
+        <option value="inappropriate">Inappropriate content</option>
+        <option value="harassment">Harassment or abuse</option>
+        <option value="other">Something else</option>
+      </select>
+    </div>
+    <div class="field"><label for="reason">Details <span class="muted">(optional)</span></label><textarea id="reason" name="reason" maxlength="1000" rows="4" placeholder="Anything that helps our moderators understand the problem."></textarea></div>
+    <div class="row"><button class="btn" type="submit">Submit report</button><a class="btn ghost" href="/feed">Cancel</a></div>
+  </form>
+</div>
+<%- include('partials/foot') %>

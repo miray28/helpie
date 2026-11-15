@@ -1,0 +1,141 @@
+<%- include('partials/head') %>
+<div class="container page">
+  <p class="small"><a href="/feed">← Back to feed</a></p>
+  <div class="detail">
+    <div class="stack">
+      <article class="card">
+        <% if (post.image) { %><img class="hero-img" src="<%= h.postImage(post) %>" alt="Photo of <%= post.title %>"><% } %>
+        <div style="padding:22px">
+          <div class="row" style="margin-bottom:10px">
+            <span class="badge <%= post.type %>"><%= post.type === 'donation' ? 'Donation' : 'Request' %></span>
+            <span class="badge <%= post.status === 'claimed' ? '' : post.status %>"><%= post.status === 'pending' ? 'Reserved' : h.humanize(post.status) %></span>
+            <span class="muted small">Posted <%= h.timeAgo(post.created_at) %></span>
+          </div>
+          <h1><%= post.title %></h1>
+          <p class="content"><%= post.content %></p>
+          <div class="row">
+            <form class="inline" method="post" action="/posts/<%= post.id %>/save" data-save>
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <button class="btn secondary small" type="submit" aria-pressed="<%= post.is_saved ? 'true' : 'false' %>"><%- h.icon('bookmark') %> <span data-save-label><%= post.is_saved ? 'Saved' : 'Save' %></span> · <span data-save-count><%= post.save_count %></span></button>
+            </form>
+            <% if (canManage) { %>
+              <a class="btn secondary small" href="/posts/<%= post.id %>/edit">Edit</a>
+              <form class="inline" method="post" action="/posts/<%= post.id %>/delete" data-confirm="Delete this post permanently?">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <button class="btn danger small" type="submit">Delete</button>
+              </form>
+            <% } %>
+            <% if (!isOwner) { %><a class="btn ghost small" href="/report?type=post&id=<%= post.id %>"><%- h.icon('flag') %> Report</a><% } %>
+          </div>
+        </div>
+      </article>
+
+      <section class="card pad" id="comments">
+        <h2>Comments <span class="muted">(<%= comments.length %>)</span></h2>
+        <% if (comments.length) { %>
+          <ul class="list" style="margin-bottom:18px">
+            <% comments.forEach((c) => { %>
+              <li class="comment">
+                <img class="avatar" src="<%= h.avatar(c) %>" alt="">
+                <div class="grow">
+                  <div class="row between">
+                    <span><a href="/users/<%= c.user_id %>"><strong><%= c.username %></strong></a> <span class="muted small">· <%= h.timeAgo(c.created_at) %></span></span>
+                    <span class="row">
+                      <% if (c.user_id !== currentUser.id) { %><a class="muted small" href="/report?type=comment&id=<%= c.id %>">Report</a><% } %>
+                      <% if (c.user_id === currentUser.id || isOwner || currentUser.role === 'admin') { %>
+                        <form class="inline" method="post" action="/comments/<%= c.id %>/delete" data-confirm="Delete this comment?">
+                          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                          <button class="btn ghost small" type="submit">Delete</button>
+                        </form>
+                      <% } %>
+                    </span>
+                  </div>
+                  <p><%= c.content %></p>
+                </div>
+              </li>
+            <% }) %>
+          </ul>
+        <% } else { %>
+          <p class="muted">No comments yet. Ask a question or say hello.</p>
+        <% } %>
+        <form method="post" action="/posts/<%= post.id %>/comments">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <label class="sr-only" for="comment">Add a comment</label>
+          <textarea id="comment" name="content" required maxlength="1000" rows="3" placeholder="Write a comment…"></textarea>
+          <button class="btn small" type="submit" style="margin-top:10px">Post comment</button>
+        </form>
+      </section>
+    </div>
+
+    <aside class="stack">
+      <div class="card pad">
+        <a class="row" href="/users/<%= post.user_id %>" style="color:inherit;margin-bottom:14px">
+          <img class="avatar lg" src="<%= h.avatar(post) %>" alt="">
+          <span><strong><%= post.username %></strong><br><span class="muted small">View profile</span></span>
+        </a>
+        <% if (!isOwner) { %><a class="btn secondary block" href="/messages/<%= post.user_id %>"><%- h.icon('message') %> Message <%= post.username %></a><% } %>
+      </div>
+
+      <div class="card pad">
+        <h3>Details</h3>
+        <dl class="facts">
+          <% if (post.category_name) { %><dt>Category</dt><dd><%= post.category_name %></dd><% } %>
+          <% if (post.condition_state) { %><dt>Condition</dt><dd><%= h.humanize(post.condition_state) %></dd><% } %>
+          <% if (post.quantity) { %><dt>Quantity</dt><dd><%= post.quantity %></dd><% } %>
+          <% if (post.expiry_date) { %><dt>Expires</dt><dd><%= post.expiry_date %></dd><% } %>
+          <% if (post.location) { %><dt>Location</dt><dd><%= post.location %></dd><% } %>
+          <dt>Posted</dt><dd><%= h.formatDate(post.created_at) %></dd>
+        </dl>
+      </div>
+
+      <% if (isOwner) { %>
+        <div class="card pad">
+          <h3>Status</h3>
+          <form class="row" method="post" action="/posts/<%= post.id %>/status">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <select class="grow" name="status" aria-label="Post status">
+              <option value="available" <%= post.status === 'available' ? 'selected' : '' %>>Available</option>
+              <option value="pending" <%= post.status === 'pending' ? 'selected' : '' %>>Reserved</option>
+              <option value="claimed" <%= post.status === 'claimed' ? 'selected' : '' %>><%= post.type === 'donation' ? 'Claimed' : 'Fulfilled' %></option>
+            </select>
+            <button class="btn secondary small" type="submit">Update</button>
+          </form>
+        </div>
+        <% if (post.type === 'donation') { %>
+          <div class="card pad">
+            <h3>Requests (<%= requests.length %>)</h3>
+            <% if (requests.length) { %>
+              <ul class="list">
+                <% requests.forEach((r) => { %>
+                  <li>
+                    <div class="row between"><a href="/users/<%= r.requester_id %>"><strong><%= r.username %></strong></a><span class="badge <%= r.status %>"><%= h.humanize(r.status) %></span></div>
+                    <% if (r.notes) { %><p class="quote"><%= r.notes %></p><% } %>
+                  </li>
+                <% }) %>
+              </ul>
+              <p style="margin:14px 0 0"><a class="btn secondary small block" href="/requests">Manage requests</a></p>
+            <% } else { %><p class="muted small" style="margin:0">Nobody has requested this yet.</p><% } %>
+          </div>
+        <% } %>
+      <% } else if (post.type === 'donation') { %>
+        <div class="card pad">
+          <h3>Request this donation</h3>
+          <% if (myRequest) { %>
+            <p style="margin:0">Your request is <span class="badge <%= myRequest.status %>"><%= h.humanize(myRequest.status) %></span></p>
+            <% if (myRequest.status === 'approved') { %><p class="small muted" style="margin:10px 0 0">Message <%= post.username %> to arrange the hand-over.</p><% } %>
+          <% } else if (post.status === 'claimed') { %>
+            <p class="muted" style="margin:0">This donation has already been claimed.</p>
+          <% } else { %>
+            <form method="post" action="/posts/<%= post.id %>/request">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <label for="notes">Tell the donor why you need it</label>
+              <textarea id="notes" name="notes" maxlength="1000" rows="3" placeholder="A short note helps donors decide."></textarea>
+              <button class="btn block" type="submit" style="margin-top:10px">Send request</button>
+            </form>
+          <% } %>
+        </div>
+      <% } %>
+    </aside>
+  </div>
+</div>
+<%- include('partials/foot') %>

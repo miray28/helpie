@@ -1,0 +1,46 @@
+<%- include('partials/head') %>
+<div class="container page">
+  <div class="card chat <%= partner ? 'has-partner' : '' %>">
+    <aside class="chat-list">
+      <h2>Messages</h2>
+      <% if (conversations.length) { %>
+        <% conversations.forEach((c) => { %>
+          <a href="/messages/<%= c.user_id %>" <%- partner && partner.id === c.user_id ? 'aria-current="page"' : '' %>>
+            <img class="avatar" src="<%= h.avatar(c) %>" alt="">
+            <span class="grow">
+              <strong><%= c.username %></strong>
+              <span class="preview" style="display:block"><%= c.last_message %></span>
+            </span>
+            <% if (c.unread) { %><span class="count"><%= c.unread %></span><% } %>
+          </a>
+        <% }) %>
+      <% } else { %>
+        <p class="muted small" style="padding:0 16px">No conversations yet. Message someone from their profile or a post.</p>
+      <% } %>
+    </aside>
+    <section class="chat-main">
+      <% if (partner) { %>
+        <header class="chat-head">
+          <a class="btn ghost small" href="/messages" aria-label="All conversations">←</a>
+          <img class="avatar" src="<%= h.avatar(partner) %>" alt="">
+          <div class="grow"><a href="/users/<%= partner.id %>" style="color:inherit"><strong><%= partner.username %></strong></a><div class="chat-status" data-chat-status>Connecting…</div></div>
+        </header>
+        <div class="chat-log" data-chat-log data-me="<%= currentUser.id %>" data-partner="<%= partner.id %>" aria-live="polite">
+          <% if (!messages.length) { %><p class="muted center" data-chat-empty style="margin:auto">Say hello to <%= partner.username %> 👋</p><% } %>
+          <% messages.forEach((m) => { %>
+            <div class="bubble <%= m.sender_id === currentUser.id ? 'mine' : '' %>"><%= m.body %><time datetime="<%= new Date(m.created_at).toISOString() %>" data-time="<%= m.created_at %>"></time></div>
+          <% }) %>
+        </div>
+        <form class="chat-form" data-chat-form>
+          <label class="sr-only" for="chat-input">Message</label>
+          <input id="chat-input" type="text" name="message" maxlength="2000" autocomplete="off" placeholder="Write a message…" required autofocus>
+          <button class="btn" type="submit">Send</button>
+        </form>
+        <script src="/js/chat.js" defer></script>
+      <% } else { %>
+        <div class="empty" style="margin:auto"><h3>Your messages</h3><p>Pick a conversation to start chatting.</p><a class="btn secondary" href="/members">Find members</a></div>
+      <% } %>
+    </section>
+  </div>
+</div>
+<%- include('partials/foot') %>

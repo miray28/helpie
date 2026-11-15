@@ -1,0 +1,6 @@
+<div class="section-title"><h1><%= title %></h1></div>
+<nav class="tabs" aria-label="Admin">
+  <% [['/admin', 'Dashboard'], ['/admin/users', 'Users'], ['/admin/posts', 'Posts'], ['/admin/reports', 'Reports'], ['/admin/categories', 'Categories'], ['/admin/settings', 'Settings']].forEach(([href, label]) => { %>
+    <a href="<%= href %>" <%- (path === href || path === href + '/' ) ? 'aria-current="page"' : '' %>><%= label %><% if (href === '/admin/reports' && adminCounts.reports) { %> <span class="count"><%= adminCounts.reports %></span><% } %></a>
+  <% }) %>
+</nav>

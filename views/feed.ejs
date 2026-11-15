@@ -1,0 +1,52 @@
+<%- include('partials/head') %>
+<div class="container page">
+  <div class="section-title">
+    <h1><%= heading %></h1>
+    <a class="btn" href="/posts/new"><%- h.icon('plus') %> New post</a>
+  </div>
+
+  <% if (mode !== 'feed') { %>
+    <nav class="tabs" aria-label="My content">
+      <a href="/my-posts" <%- mode === 'mine' ? 'aria-current="page"' : '' %>>My posts</a>
+      <a href="/saved" <%- mode === 'saved' ? 'aria-current="page"' : '' %>>Saved</a>
+      <a href="/activity">Activity</a>
+    </nav>
+  <% } %>
+
+  <% if (mode !== 'saved') { %>
+  <form class="card filters" method="get" action="<%= path %>" role="search">
+    <input type="search" name="search" placeholder="Search posts…" aria-label="Search posts" value="<%= query.search || '' %>">
+    <select name="type" aria-label="Type">
+      <option value="">All types</option>
+      <option value="donation" <%= query.type === 'donation' ? 'selected' : '' %>>Donations</option>
+      <option value="request" <%= query.type === 'request' ? 'selected' : '' %>>Requests</option>
+    </select>
+    <select name="category" aria-label="Category">
+      <option value="">All categories</option>
+      <% categories.forEach((c) => { %><option value="<%= c.id %>" <%= String(query.category) === String(c.id) ? 'selected' : '' %>><%= c.name %></option><% }) %>
+    </select>
+    <select name="status" aria-label="Status">
+      <option value="">Any status</option>
+      <option value="available" <%= query.status === 'available' ? 'selected' : '' %>>Available</option>
+      <option value="pending" <%= query.status === 'pending' ? 'selected' : '' %>>Reserved</option>
+      <option value="claimed" <%= query.status === 'claimed' ? 'selected' : '' %>>Claimed</option>
+    </select>
+    <button class="btn secondary" type="submit"><%- h.icon('search') %> Filter</button>
+  </form>
+  <% } %>
+
+  <% if (posts.length) { %>
+    <div class="grid">
+      <% posts.forEach((post) => { %><%- include('partials/post-card', { post }) %><% }) %>
+    </div>
+    <%- include('partials/pagination') %>
+  <% } else { %>
+    <div class="card empty">
+      <% const filtered = query.search || query.type || query.category || query.status; %>
+      <h3><%= filtered ? 'No posts match those filters' : mode === 'saved' ? 'Nothing saved yet' : mode === 'mine' ? "You haven't posted yet" : 'No posts yet' %></h3>
+      <p><%= filtered ? 'Try widening your search.' : mode === 'saved' ? 'Tap the bookmark on a post to keep it here.' : 'Be the first to offer or request something.' %></p>
+      <% if (filtered) { %><a class="btn secondary" href="<%= path %>">Clear filters</a><% } else if (mode !== 'saved') { %><a class="btn" href="/posts/new">Create a post</a><% } else { %><a class="btn" href="/feed">Browse the feed</a><% } %>
+    </div>
+  <% } %>
+</div>
+<%- include('partials/foot') %>

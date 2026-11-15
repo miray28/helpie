@@ -1,0 +1,41 @@
+<%- include('partials/head') %>
+<div class="container narrow page stack">
+  <h1>Account settings</h1>
+
+  <form class="card pad" method="post" action="/settings">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="action" value="update_email">
+    <h2>Email address</h2>
+    <div class="form-grid">
+      <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" required autocomplete="email" value="<%= currentUser.email %>"></div>
+      <div class="field"><label for="email_pw">Current password</label><input id="email_pw" name="current_password" type="password" required autocomplete="current-password"></div>
+    </div>
+    <button class="btn secondary" type="submit">Update email</button>
+  </form>
+
+  <form class="card pad" method="post" action="/settings">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="action" value="change_password">
+    <h2>Password</h2>
+    <div class="field"><label for="current_password">Current password</label><input id="current_password" name="current_password" type="password" required autocomplete="current-password"></div>
+    <div class="form-grid">
+      <div class="field"><label for="new_password">New password</label><input id="new_password" name="new_password" type="password" required minlength="8" autocomplete="new-password"><div class="hint">At least 8 characters, with a letter and a number.</div></div>
+      <div class="field"><label for="confirm_password">Confirm new password</label><input id="confirm_password" name="confirm_password" type="password" required minlength="8" autocomplete="new-password"></div>
+    </div>
+    <button class="btn secondary" type="submit">Change password</button>
+  </form>
+
+  <form class="card pad" method="post" action="/settings">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="action" value="update_privacy">
+    <h2>Privacy</h2>
+    <div class="field"><label class="check"><input type="checkbox" name="profile_visible" value="1" <%= currentUser.profile_visible ? 'checked' : '' %>><span><strong>Show my profile to other members</strong><br><span class="muted small">When off, you're hidden from the member directory and your profile page is private. Your posts stay visible.</span></span></label></div>
+    <button class="btn secondary" type="submit">Save privacy settings</button>
+  </form>
+
+  <form class="card pad" method="post" action="/settings" data-confirm="This permanently deletes your account, posts and messages. Continue?">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="action" value="delete_account">
+    <h2>Delete account</h2>
+    <p class="muted">This permanently removes your profile, posts, comments and messages. It cannot be undone.</p>
+    <div class="field"><label for="delete_pw">Confirm with your password</label><input id="delete_pw" name="current_password" type="password" required autocomplete="current-password"></div>
+    <button class="btn danger" type="submit">Delete my account</button>
+  </form>
+</div>
+<%- include('partials/foot') %>

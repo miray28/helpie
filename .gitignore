@@ -30,10 +30,7 @@ Thumbs.db
 .vscode/
 *.swp
 
-# Composer
-composer.phar
 
-# PHPStorm / JetBrains
 *.iml
 
 # Uploads (binaries/user content)
@@ -43,3 +40,5 @@ public/uploads/
 *.bak
 *.tmp
 ~$*
+# App data (SQLite database and uploaded images)
+/data/

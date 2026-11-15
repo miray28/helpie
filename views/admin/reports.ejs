@@ -1,0 +1,53 @@
+<%- include('../partials/head') %>
+<div class="container page">
+  <%- include('../partials/admin-nav') %>
+  <div class="row" style="margin-bottom:16px">
+    <% [['pending', 'Open'], ['resolved', 'Resolved'], ['dismissed', 'Dismissed'], ['all', 'All']].forEach(([v, l]) => { %>
+      <a class="btn small <%= status === v ? '' : 'secondary' %>" href="/admin/reports<%= h.queryString({ status: v, type: query.type }) %>"><%= l %></a>
+    <% }) %>
+  </div>
+  <% const here = path + h.queryString(query); %>
+  <% if (reports.length) { %>
+    <div class="stack">
+      <% reports.forEach((r) => { %>
+        <article class="card pad">
+          <div class="row between">
+            <div class="row">
+              <span class="badge <%= r.status %>"><%= r.status === 'pending' ? 'Open' : h.humanize(r.status) %></span>
+              <strong><%= h.humanize(r.type) %></strong>
+              <span class="muted small"><%= h.humanize(r.content_type === 'user' ? 'member' : r.content_type) %> report · <%= h.timeAgo(r.created_at) %></span>
+            </div>
+            <span class="muted small">Reported by <%= r.reporter_name || 'a deleted account' %></span>
+          </div>
+          <p style="margin:12px 0 0">
+            About <% if (r.reported_name) { %><a href="/users/<%= r.reported_user_id %>"><strong><%= r.reported_name %></strong></a><% if (r.reported_blocked) { %> <span class="badge blocked">Blocked</span><% } %><% } else { %>a deleted account<% } %>
+            <% if (r.content_type === 'post') { %> — <% if (r.post_title) { %>post <a href="/posts/<%= r.content_id %>"><%= r.post_title %></a><% } else { %><span class="muted">post has been deleted</span><% } %><% } %>
+            <% if (r.content_type === 'comment' && !r.comment_content) { %> — <span class="muted">comment has been deleted</span><% } %>
+          </p>
+          <% if (r.comment_content) { %><p class="quote">Comment on <a href="/posts/<%= r.comment_post_id %>#comments">this post</a>: <%= r.comment_content %></p><% } %>
+          <% if (r.reason) { %><p class="quote"><strong>Reporter's note:</strong> <%= r.reason %></p><% } %>
+          <% if (r.status === 'pending') { %>
+            <div class="row" style="margin-top:14px">
+              <% const act = (action, label, cls, confirm) => { %>
+                <form class="inline" method="post" action="/admin/reports/<%= r.id %>" <%- confirm ? `data-confirm="${confirm}"` : '' %>>
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="action" value="<%= action %>"><input type="hidden" name="return_to" value="<%= here %>">
+                  <button class="btn <%= cls %> small" type="submit"><%= label %></button>
+                </form>
+              <% }; %>
+              <% act('resolve', 'Mark resolved', ''); %>
+              <% act('dismiss', 'Dismiss', 'secondary'); %>
+              <% if ((r.content_type === 'post' && r.post_title) || (r.content_type === 'comment' && r.comment_content)) { act('delete_content', `Delete ${r.content_type}`, 'danger', `Delete this ${r.content_type} permanently?`); } %>
+              <% if (r.reported_name && !r.reported_blocked) { act('block_user', 'Block member', 'danger', 'Block this member? They will be signed out immediately.'); } %>
+            </div>
+          <% } else if (r.action_taken && r.action_taken !== 'none') { %>
+            <p class="muted small" style="margin:10px 0 0">Action taken: <%= h.humanize(r.action_taken) %> · <%= h.formatDate(r.resolved_at) %></p>
+          <% } %>
+        </article>
+      <% }) %>
+    </div>
+    <%- include('../partials/pagination') %>
+  <% } else { %>
+    <div class="card empty"><h3>Nothing here</h3><p>No <%= status === 'all' ? '' : status === 'pending' ? 'open ' : status + ' ' %>reports.</p></div>
+  <% } %>
+</div>
+<%- include('../partials/foot') %>

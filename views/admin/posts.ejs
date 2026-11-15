@@ -1,0 +1,43 @@
+<%- include('../partials/head') %>
+<div class="container page">
+  <%- include('../partials/admin-nav') %>
+  <form class="card filters three" method="get" action="/admin/posts" role="search">
+    <input type="search" name="search" placeholder="Search title, text or author…" aria-label="Search posts" value="<%= query.search || '' %>">
+    <select name="type" aria-label="Type">
+      <option value="">All types</option>
+      <option value="donation" <%= query.type === 'donation' ? 'selected' : '' %>>Donations</option>
+      <option value="request" <%= query.type === 'request' ? 'selected' : '' %>>Requests</option>
+    </select>
+    <select name="status" aria-label="Status">
+      <option value="">Any status</option>
+      <% [['available', 'Available'], ['pending', 'Reserved'], ['claimed', 'Claimed']].forEach(([v, l]) => { %><option value="<%= v %>" <%= query.status === v ? 'selected' : '' %>><%= l %></option><% }) %>
+    </select>
+    <button class="btn secondary" type="submit">Filter</button>
+  </form>
+  <div class="card table-wrap">
+    <table>
+      <thead><tr><th>Post</th><th>Author</th><th>Type</th><th>Status</th><th>Comments</th><th>Posted</th><th><span class="sr-only">Actions</span></th></tr></thead>
+      <tbody>
+        <% posts.forEach((p) => { %>
+          <tr>
+            <td><a href="/posts/<%= p.id %>"><strong><%= p.title %></strong></a><div class="muted small"><%= p.category_name || 'Uncategorised' %></div></td>
+            <td><a href="/users/<%= p.user_id %>"><%= p.username %></a></td>
+            <td><span class="badge <%= p.type %>"><%= h.humanize(p.type) %></span></td>
+            <td><span class="badge <%= p.status === 'claimed' ? '' : p.status %>"><%= p.status === 'pending' ? 'Reserved' : h.humanize(p.status) %></span></td>
+            <td><%= p.comment_count %></td>
+            <td class="muted"><%= h.formatDate(p.created_at) %></td>
+            <td class="actions">
+              <form class="inline" method="post" action="/admin/posts/<%= p.id %>/delete" data-confirm="Delete this post permanently?">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="return_to" value="<%= path + h.queryString(query) %>">
+                <button class="btn danger small" type="submit">Delete</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+        <% if (!posts.length) { %><tr><td colspan="7" class="center muted">No posts match.</td></tr><% } %>
+      </tbody>
+    </table>
+  </div>
+  <%- include('../partials/pagination') %>
+</div>
+<%- include('../partials/foot') %>

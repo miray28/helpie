@@ -1,0 +1,28 @@
+<%- include('partials/head') %>
+<div class="container narrow page">
+  <h1>Edit profile</h1>
+  <form class="card pad" method="post" action="/profile/edit" enctype="multipart/form-data">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="field"><label for="username">Username</label><input id="username" name="username" type="text" required minlength="3" maxlength="30" value="<%= form.username || '' %>"></div>
+    <div class="field"><label for="about">About</label><textarea id="about" name="about" maxlength="1000" rows="4" placeholder="A short introduction"><%= form.about || '' %></textarea></div>
+    <div class="form-grid">
+      <div class="field"><label for="address">Location</label><input id="address" name="address" type="text" maxlength="200" placeholder="City or neighbourhood" value="<%= form.address || '' %>"></div>
+      <div class="field"><label for="phone">Phone</label><input id="phone" name="phone" type="tel" maxlength="30" autocomplete="tel" value="<%= form.phone || '' %>"><div class="hint">Private — never shown to other members.</div></div>
+    </div>
+    <div class="form-grid">
+      <div class="field">
+        <label for="profile_image">Profile photo</label>
+        <img class="avatar lg" src="<%= h.avatar(currentUser) %>" alt="" style="margin-bottom:10px" data-preview>
+        <input id="profile_image" name="profile_image" type="file" accept="image/jpeg,image/png,image/gif,image/webp" data-preview-input>
+      </div>
+      <div class="field">
+        <label for="cover_image">Cover photo</label>
+        <img src="<%= h.cover(currentUser) %>" alt="" style="height:64px;width:100%;object-fit:cover;border-radius:9px;margin-bottom:10px" data-preview>
+        <input id="cover_image" name="cover_image" type="file" accept="image/jpeg,image/png,image/gif,image/webp" data-preview-input>
+      </div>
+    </div>
+    <p class="hint">Images can be JPEG, PNG, GIF or WebP, up to 5 MB each.</p>
+    <div class="row"><button class="btn" type="submit">Save profile</button><a class="btn ghost" href="/profile">Cancel</a></div>
+  </form>
+</div>
+<%- include('partials/foot') %>

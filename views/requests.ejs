@@ -1,0 +1,41 @@
+<%- include('partials/head') %>
+<div class="container narrow page">
+  <h1>Donation requests</h1>
+  <p class="muted">People who have asked for items you're giving away.</p>
+  <% if (requests.length) { %>
+    <div class="card pad">
+      <ul class="list">
+        <% requests.forEach((r) => { %>
+          <li>
+            <div class="item">
+              <img class="avatar" src="<%= h.avatar(r) %>" alt="">
+              <div class="grow">
+                <a href="/users/<%= r.requester_id %>"><strong><%= r.username %></strong></a> requested
+                <a href="/posts/<%= r.post_id %>"><%= r.post_title %></a>
+                <div class="muted small"><%= h.timeAgo(r.created_at) %></div>
+              </div>
+              <span class="badge <%= r.status %>"><%= h.humanize(r.status) %></span>
+            </div>
+            <% if (r.notes) { %><p class="quote"><%= r.notes %></p><% } %>
+            <div class="row" style="margin-top:10px">
+              <% if (r.status === 'pending') { %>
+                <form class="inline" method="post" action="/requests/<%= r.id %>/status">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="status" value="approved">
+                  <button class="btn small" type="submit"><%- h.icon('check') %> Approve</button>
+                </form>
+                <form class="inline" method="post" action="/requests/<%= r.id %>/status">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="status" value="rejected">
+                  <button class="btn danger small" type="submit">Decline</button>
+                </form>
+              <% } %>
+              <a class="btn secondary small" href="/messages/<%= r.requester_id %>"><%- h.icon('message') %> Message</a>
+            </div>
+          </li>
+        <% }) %>
+      </ul>
+    </div>
+  <% } else { %>
+    <div class="card empty"><h3>No requests yet</h3><p>When someone asks for one of your donations it will show up here.</p><a class="btn" href="/posts/new?type=donation">Offer a donation</a></div>
+  <% } %>
+</div>
+<%- include('partials/foot') %>

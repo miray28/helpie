@@ -1,0 +1,54 @@
+<%- include('partials/head') %>
+<div class="container page">
+  <h1>My activity</h1>
+  <nav class="tabs" aria-label="My content">
+    <a href="/my-posts">My posts</a>
+    <a href="/saved">Saved</a>
+    <a href="/activity" aria-current="page">Activity</a>
+  </nav>
+  <div class="two-col">
+    <section class="card pad">
+      <h2>Donations I've requested</h2>
+      <% if (myRequests.length) { %>
+        <ul class="list">
+          <% myRequests.forEach((r) => { %>
+            <li class="item">
+              <img class="thumb-sm" src="<%= h.postImage(r) %>" alt="">
+              <div class="grow">
+                <a href="/posts/<%= r.post_id %>"><strong><%= r.post_title %></strong></a>
+                <div class="muted small">from <a href="/users/<%= r.poster_id %>"><%= r.poster_name %></a> · <%= h.timeAgo(r.created_at) %></div>
+              </div>
+              <span class="badge <%= r.status %>"><%= h.humanize(r.status) %></span>
+              <% if (r.status === 'pending') { %>
+                <form class="inline" method="post" action="/requests/<%= r.id %>/cancel" data-confirm="Withdraw this request?">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <button class="btn ghost small" type="submit">Withdraw</button>
+                </form>
+              <% } else if (r.status === 'approved') { %>
+                <a class="btn secondary small" href="/messages/<%= r.poster_id %>">Message</a>
+              <% } %>
+            </li>
+          <% }) %>
+        </ul>
+      <% } else { %><p class="muted">You haven't requested any donations yet. <a href="/feed?type=donation">Browse donations</a></p><% } %>
+    </section>
+    <section class="card pad">
+      <h2>My posts</h2>
+      <% if (myPosts.length) { %>
+        <ul class="list">
+          <% myPosts.forEach((p) => { %>
+            <li class="item">
+              <img class="thumb-sm" src="<%= h.postImage(p) %>" alt="">
+              <div class="grow">
+                <a href="/posts/<%= p.id %>"><strong><%= p.title %></strong></a>
+                <div class="muted small"><%= h.timeAgo(p.created_at) %> · <%= p.comment_count %> comments<% if (p.type === 'donation') { %> · <%= p.request_count %> requests<% } %></div>
+              </div>
+              <span class="badge <%= p.type %>"><%= h.humanize(p.type) %></span>
+            </li>
+          <% }) %>
+        </ul>
+      <% } else { %><p class="muted">Nothing posted yet. <a href="/posts/new">Create your first post</a></p><% } %>
+    </section>
+  </div>
+</div>
+<%- include('partials/foot') %>

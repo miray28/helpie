@@ -1,0 +1,8 @@
+<%- include('partials/head') %>
+<div class="error-page">
+  <div class="code"><%= status %></div>
+  <h1><%= title %></h1>
+  <p class="muted"><%= message %></p>
+  <p><a class="btn" href="<%= currentUser ? '/feed' : '/' %>">Back to <%= currentUser ? 'the feed' : 'home' %></a></p>
+</div>
+<%- include('partials/foot') %>

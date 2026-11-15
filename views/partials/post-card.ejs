@@ -1,0 +1,28 @@
+<article class="card post-card">
+  <a class="thumb" href="/posts/<%= post.id %>" tabindex="-1" aria-hidden="true">
+    <img src="<%= h.postImage(post) %>" alt="" loading="lazy">
+    <span class="badges">
+      <span class="badge <%= post.type %>"><%= post.type === 'donation' ? 'Donation' : 'Request' %></span>
+      <% if (post.status !== 'available') { %><span class="badge <%= post.status === 'pending' ? 'pending' : '' %>"><%= post.status === 'pending' ? 'Reserved' : 'Claimed' %></span><% } %>
+    </span>
+  </a>
+  <div class="body">
+    <h3><a href="/posts/<%= post.id %>"><%= post.title %></a></h3>
+    <p class="excerpt"><%= post.content %></p>
+    <div class="meta">
+      <% if (post.category_name) { %><span><%- h.icon('tag') %> <%= post.category_name %></span><% } %>
+      <% if (post.location) { %><span><%- h.icon('pin') %> <%= post.location %></span><% } %>
+      <span><%- h.icon('clock') %> <%= h.timeAgo(post.created_at) %></span>
+    </div>
+  </div>
+  <div class="foot">
+    <a class="author" href="/users/<%= post.user_id %>"><img class="avatar sm" src="<%= h.avatar(post) %>" alt=""><span><%= post.username %></span></a>
+    <span class="muted" title="Comments"><%- h.icon('message') %> <%= post.comment_count %></span>
+    <form class="inline" method="post" action="/posts/<%= post.id %>/save" data-save>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <button class="btn ghost small" type="submit" aria-pressed="<%= post.is_saved ? 'true' : 'false' %>" aria-label="<%= post.is_saved ? 'Remove from saved' : 'Save post' %>">
+        <%- h.icon('bookmark') %> <span data-save-count><%= post.save_count %></span>
+      </button>
+    </form>
+  </div>
+</article>

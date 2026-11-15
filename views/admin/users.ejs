@@ -1,0 +1,57 @@
+<%- include('../partials/head') %>
+<div class="container page">
+  <%- include('../partials/admin-nav') %>
+  <form class="card filters three" method="get" action="/admin/users" role="search">
+    <input type="search" name="search" placeholder="Search by username or email…" aria-label="Search users" value="<%= query.search || '' %>">
+    <select name="role" aria-label="Role">
+      <option value="">All roles</option>
+      <% ['donor', 'recipient', 'admin'].forEach((r) => { %><option value="<%= r %>" <%= query.role === r ? 'selected' : '' %>><%= h.humanize(r) %></option><% }) %>
+    </select>
+    <select name="state" aria-label="State">
+      <option value="">Any state</option>
+      <option value="blocked" <%= query.state === 'blocked' ? 'selected' : '' %>>Blocked</option>
+      <option value="unverified" <%= query.state === 'unverified' ? 'selected' : '' %>>Unverified</option>
+    </select>
+    <button class="btn secondary" type="submit">Filter</button>
+  </form>
+  <% const here = path + h.queryString(query); %>
+  <div class="card table-wrap">
+    <table>
+      <thead><tr><th>Member</th><th>Role</th><th>Posts</th><th>Joined</th><th>Status</th><th><span class="sr-only">Actions</span></th></tr></thead>
+      <tbody>
+        <% users.forEach((u) => { %>
+          <tr>
+            <td><div class="row"><img class="avatar sm" src="<%= h.avatar(u) %>" alt=""><div><a href="/users/<%= u.id %>"><strong><%= u.username %></strong></a><div class="muted small"><%= u.email %></div></div></div></td>
+            <td>
+              <form class="row" method="post" action="/admin/users/<%= u.id %>" style="flex-wrap:nowrap;gap:6px">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="action" value="role"><input type="hidden" name="return_to" value="<%= here %>">
+                <select name="role" aria-label="Role for <%= u.username %>" <%= u.id === currentUser.id ? 'disabled' : '' %>>
+                  <% ['donor', 'recipient', 'admin'].forEach((r) => { %><option value="<%= r %>" <%= u.role === r ? 'selected' : '' %>><%= h.humanize(r) %></option><% }) %>
+                </select>
+                <% if (u.id !== currentUser.id) { %><button class="btn ghost small" type="submit">Set</button><% } %>
+              </form>
+            </td>
+            <td><%= u.post_count %></td>
+            <td class="muted"><%= h.formatDate(u.created_at) %></td>
+            <td>
+              <% if (u.blocked) { %><span class="badge blocked">Blocked</span><% } else if (u.verified) { %><span class="badge verified">Verified</span><% } else { %><span class="badge">Active</span><% } %>
+            </td>
+            <td class="actions">
+              <% const act = (action, label, cls) => { %>
+                <form class="inline" method="post" action="/admin/users/<%= u.id %>" <%- action === 'block' ? 'data-confirm="Block this member? They will be signed out immediately."' : '' %>>
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="action" value="<%= action %>"><input type="hidden" name="return_to" value="<%= here %>">
+                  <button class="btn <%= cls %> small" type="submit"><%= label %></button>
+                </form>
+              <% }; %>
+              <% act(u.verified ? 'unverify' : 'verify', u.verified ? 'Unverify' : 'Verify', 'secondary'); %>
+              <% if (u.role !== 'admin') { act(u.blocked ? 'unblock' : 'block', u.blocked ? 'Unblock' : 'Block', u.blocked ? 'secondary' : 'danger'); } %>
+            </td>
+          </tr>
+        <% }) %>
+        <% if (!users.length) { %><tr><td colspan="6" class="center muted">No users match.</td></tr><% } %>
+      </tbody>
+    </table>
+  </div>
+  <%- include('../partials/pagination') %>
+</div>
+<%- include('../partials/foot') %>

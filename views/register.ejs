@@ -1,0 +1,29 @@
+<%- include('partials/head') %>
+<div class="container tiny page">
+  <div class="card pad">
+    <h1>Join <%= settings.site_name %></h1>
+    <% if (settings.enable_registration !== '1') { %>
+      <p class="muted">New registrations are currently closed. Please check back later.</p>
+    <% } else { %>
+    <p class="muted">Create a free account to donate or request supplies.</p>
+    <form method="post" action="/register">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="field">
+        <label>I'm here to…</label>
+        <div class="choice">
+          <label><input type="radio" name="role" value="donor" <%= form.role !== 'recipient' ? 'checked' : '' %>><span><strong>Donate</strong><small>I have supplies to give</small></span></label>
+          <label><input type="radio" name="role" value="recipient" <%= form.role === 'recipient' ? 'checked' : '' %>><span><strong>Receive</strong><small>I'm looking for supplies</small></span></label>
+        </div>
+      </div>
+      <div class="field"><label for="username">Username</label><input id="username" name="username" type="text" required minlength="3" maxlength="30" pattern="[A-Za-z0-9_.\-]+" autocomplete="username" value="<%= form.username || '' %>"><div class="hint">3–30 letters, numbers, dots, dashes or underscores.</div></div>
+      <div class="field"><label for="email">Email address</label><input id="email" name="email" type="email" required autocomplete="email" value="<%= form.email || '' %>"></div>
+      <div class="field"><label for="password">Password</label><input id="password" name="password" type="password" required minlength="8" autocomplete="new-password"><div class="hint">At least 8 characters, with a letter and a number.</div></div>
+      <div class="field"><label for="confirm_password">Confirm password</label><input id="confirm_password" name="confirm_password" type="password" required minlength="8" autocomplete="new-password"></div>
+      <div class="field"><label class="check"><input type="checkbox" name="terms" value="1" required><span>I agree to the <a href="/terms" target="_blank" rel="noopener">terms of service</a> and <a href="/privacy" target="_blank" rel="noopener">privacy policy</a>.</span></label></div>
+      <button class="btn block" type="submit">Create account</button>
+    </form>
+    <% } %>
+  </div>
+  <p class="center muted" style="margin-top:16px">Already a member? <a href="/login">Sign in</a></p>
+</div>
+<%- include('partials/foot') %>

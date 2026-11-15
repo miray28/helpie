@@ -1,0 +1,7 @@
+<% if (paging.pages > 1) { %>
+  <nav class="pagination" aria-label="Pagination">
+    <% if (paging.page > 1) { %><a class="btn secondary small" href="<%= path + h.queryString(query, { page: paging.page - 1 }) %>">← Previous</a><% } %>
+    <span class="muted small">Page <%= paging.page %> of <%= paging.pages %></span>
+    <% if (paging.page < paging.pages) { %><a class="btn secondary small" href="<%= path + h.queryString(query, { page: paging.page + 1 }) %>">Next →</a><% } %>
+  </nav>
+<% } %>

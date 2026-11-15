@@ -1,0 +1,67 @@
+<%- include('partials/head') %>
+<div class="container page stack">
+  <section class="card profile-head">
+    <img class="cover" src="<%= h.cover(profile) %>" alt="">
+    <div class="info">
+      <img class="avatar xl" src="<%= h.avatar(profile) %>" alt="">
+      <div class="grow">
+        <h1 style="margin-bottom:4px"><%= profile.username %></h1>
+        <div class="row">
+          <span class="badge <%= profile.role === 'admin' ? 'admin' : '' %>"><%= h.humanize(profile.role) %></span>
+          <% if (profile.verified) { %><span class="badge verified"><%- h.icon('check') %> Verified</span><% } %>
+          <% if (profile.blocked) { %><span class="badge blocked">Blocked</span><% } %>
+          <span class="muted small">Member since <%= h.formatDate(profile.created_at) %></span>
+        </div>
+      </div>
+      <div class="row">
+        <% if (isOwn) { %>
+          <a class="btn secondary" href="/profile/edit">Edit profile</a>
+        <% } else { %>
+          <a class="btn" href="/messages/<%= profile.id %>"><%- h.icon('message') %> Message</a>
+          <a class="btn ghost small" href="/report?type=user&id=<%= profile.id %>"><%- h.icon('flag') %> Report</a>
+        <% } %>
+      </div>
+    </div>
+  </section>
+
+  <div class="detail">
+    <section>
+      <div class="section-title"><h2><%= isOwn ? 'My recent posts' : 'Recent posts' %></h2><% if (isOwn) { %><a href="/my-posts">View all</a><% } %></div>
+      <% if (posts.length) { %>
+        <div class="card pad">
+          <ul class="list">
+            <% posts.forEach((p) => { %>
+              <li class="item">
+                <img class="thumb-sm" src="<%= h.postImage(p) %>" alt="">
+                <div class="grow">
+                  <a href="/posts/<%= p.id %>"><strong><%= p.title %></strong></a>
+                  <div class="muted small"><%= p.category_name || 'Uncategorised' %> · <%= h.timeAgo(p.created_at) %> · <%= p.comment_count %> comments</div>
+                </div>
+                <span class="badge <%= p.type %>"><%= h.humanize(p.type) %></span>
+              </li>
+            <% }) %>
+          </ul>
+        </div>
+      <% } else { %>
+        <div class="card empty"><h3>No posts yet</h3><% if (isOwn) { %><a class="btn" href="/posts/new">Create your first post</a><% } %></div>
+      <% } %>
+    </section>
+    <aside class="stack">
+      <div class="card pad">
+        <div class="stats">
+          <div><strong><%= profile.total_donations %></strong><span>Donations</span></div>
+          <div><strong><%= profile.total_requests %></strong><span>Requests</span></div>
+        </div>
+      </div>
+      <div class="card pad">
+        <h3>About</h3>
+        <p class="<%= profile.about ? '' : 'muted' %>" style="white-space:pre-line;overflow-wrap:anywhere"><%= profile.about || (isOwn ? 'Tell the community a little about yourself.' : 'No bio yet.') %></p>
+        <dl class="facts">
+          <% if (profile.address) { %><dt>Location</dt><dd><%= profile.address %></dd><% } %>
+          <% if (profile.phone && isOwn) { %><dt>Phone</dt><dd><%= profile.phone %> <span class="muted small">(only you can see this)</span></dd><% } %>
+        </dl>
+      </div>
+    </aside>
+  </div>
+</div>
+<%- include('partials/foot') %>

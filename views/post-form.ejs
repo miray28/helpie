@@ -1,0 +1,51 @@
+<%- include('partials/head') %>
+<div class="container narrow page">
+  <h1><%= post ? 'Edit post' : 'Create a post' %></h1>
+  <form class="card pad" method="post" action="<%= post ? `/posts/${post.id}/edit` : '/posts' %>" enctype="multipart/form-data" data-post-form>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="field">
+      <label>What kind of post is this?</label>
+      <div class="choice">
+        <label><input type="radio" name="type" value="donation" <%= form.type !== 'request' ? 'checked' : '' %>><span><strong>Donation</strong><small>I'm giving something away</small></span></label>
+        <label><input type="radio" name="type" value="request" <%= form.type === 'request' ? 'checked' : '' %>><span><strong>Request</strong><small>I'm looking for something</small></span></label>
+      </div>
+    </div>
+    <div class="field"><label for="title">Title</label><input id="title" name="title" type="text" required minlength="3" maxlength="120" placeholder="e.g. Lightweight folding wheelchair" value="<%= form.title || '' %>"></div>
+    <div class="field"><label for="content">Description</label><textarea id="content" name="content" required minlength="10" maxlength="5000" rows="6" placeholder="Describe the item, its condition and anything the other person should know."><%= form.content || '' %></textarea></div>
+    <div class="form-grid">
+      <div class="field">
+        <label for="category_id">Category</label>
+        <select id="category_id" name="category_id" required>
+          <option value="">Choose a category</option>
+          <% categories.forEach((c) => { %><option value="<%= c.id %>" <%= form.category_id === c.id ? 'selected' : '' %>><%= c.name %></option><% }) %>
+        </select>
+      </div>
+      <div class="field" data-donation-only>
+        <label for="condition_state">Condition</label>
+        <select id="condition_state" name="condition_state">
+          <option value="">Not specified</option>
+          <% ['new', 'like_new', 'good', 'fair'].forEach((c) => { %><option value="<%= c %>" <%= form.condition_state === c ? 'selected' : '' %>><%= h.humanize(c) %></option><% }) %>
+        </select>
+      </div>
+      <div class="field"><label for="quantity">Quantity</label><input id="quantity" name="quantity" type="number" min="1" max="99999" inputmode="numeric" value="<%= form.quantity || '' %>"></div>
+      <div class="field" data-donation-only><label for="expiry_date">Expiry date</label><input id="expiry_date" name="expiry_date" type="date" value="<%= form.expiry_date || '' %>"><div class="hint">Only if the item expires.</div></div>
+    </div>
+    <div class="field"><label for="location">Location</label><input id="location" name="location" type="text" maxlength="120" placeholder="City or neighbourhood" value="<%= form.location || '' %>"></div>
+    <div class="field">
+      <label for="image">Photo</label>
+      <% if (post && post.image) { %>
+        <img src="<%= h.postImage(post) %>" alt="Current photo" style="max-height:160px;border-radius:9px;margin-bottom:10px" data-preview>
+        <label class="check" style="margin-bottom:10px"><input type="checkbox" name="remove_image" value="1"><span>Remove current photo</span></label>
+      <% } else { %>
+        <img alt="" hidden style="max-height:160px;border-radius:9px;margin-bottom:10px" data-preview>
+      <% } %>
+      <input id="image" name="image" type="file" accept="image/jpeg,image/png,image/gif,image/webp" data-preview-input>
+      <div class="hint">JPEG, PNG, GIF or WebP, up to 5 MB.</div>
+    </div>
+    <div class="row">
+      <button class="btn" type="submit"><%= post ? 'Save changes' : 'Publish post' %></button>
+      <a class="btn ghost" href="<%= post ? `/posts/${post.id}` : '/feed' %>">Cancel</a>
+    </div>
+  </form>
+</div>
+<%- include('partials/foot') %>

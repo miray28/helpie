@@ -1,0 +1,15 @@
+<%- include('partials/head') %>
+<div class="container tiny page">
+  <div class="card pad">
+    <h1>Welcome back</h1>
+    <p class="muted">Sign in to continue to <%= settings.site_name %>.</p>
+    <form method="post" action="/login">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="field"><label for="identifier">Username or email</label><input id="identifier" name="identifier" type="text" required autofocus autocomplete="username" value="<%= identifier %>"></div>
+      <div class="field"><label for="password">Password</label><input id="password" name="password" type="password" required autocomplete="current-password"></div>
+      <button class="btn block" type="submit">Sign in</button>
+    </form>
+  </div>
+  <p class="center muted" style="margin-top:16px">New here? <a href="/register">Create an account</a></p>
+</div>
+<%- include('partials/foot') %>

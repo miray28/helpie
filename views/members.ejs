@@ -1,0 +1,51 @@
+<%- include('partials/head') %>
+<div class="container page">
+  <div class="section-title"><h1>Members</h1><span class="muted"><%= paging.total %> <%= paging.total === 1 ? 'member' : 'members' %></span></div>
+  <form class="card filters three" method="get" action="/members" role="search">
+    <input type="search" name="search" placeholder="Search by name or location…" aria-label="Search members" value="<%= query.search || '' %>">
+    <select name="role" aria-label="Role">
+      <option value="">All roles</option>
+      <option value="donor" <%= query.role === 'donor' ? 'selected' : '' %>>Donors</option>
+      <option value="recipient" <%= query.role === 'recipient' ? 'selected' : '' %>>Recipients</option>
+      <option value="admin" <%= query.role === 'admin' ? 'selected' : '' %>>Admins</option>
+    </select>
+    <select name="sort" aria-label="Sort by">
+      <option value="newest">Newest</option>
+      <option value="oldest" <%= query.sort === 'oldest' ? 'selected' : '' %>>Oldest</option>
+      <option value="username" <%= query.sort === 'username' ? 'selected' : '' %>>Name</option>
+      <option value="donations" <%= query.sort === 'donations' ? 'selected' : '' %>>Most donations</option>
+      <option value="requests" <%= query.sort === 'requests' ? 'selected' : '' %>>Most requests</option>
+    </select>
+    <button class="btn secondary" type="submit"><%- h.icon('search') %> Search</button>
+  </form>
+  <% if (members.length) { %>
+    <div class="grid">
+      <% members.forEach((m) => { %>
+        <article class="card member-card">
+          <div class="row">
+            <img class="avatar lg" src="<%= h.avatar(m) %>" alt="">
+            <div class="grow">
+              <h3 style="margin:0"><a href="/users/<%= m.id %>" style="color:inherit"><%= m.username %></a></h3>
+              <span class="badge <%= m.role === 'admin' ? 'admin' : '' %>"><%= h.humanize(m.role) %></span>
+              <% if (m.verified) { %><span class="badge verified"><%- h.icon('check') %> Verified</span><% } %>
+            </div>
+          </div>
+          <% if (m.about) { %><p class="about"><%= m.about %></p><% } %>
+          <div class="meta">
+            <span><strong><%= m.total_donations %></strong>&nbsp;donations</span>
+            <span><strong><%= m.total_requests %></strong>&nbsp;requests</span>
+            <% if (m.address) { %><span><%- h.icon('pin') %> <%= m.address %></span><% } %>
+          </div>
+          <div class="row" style="margin-top:auto">
+            <a class="btn secondary small" href="/users/<%= m.id %>">View profile</a>
+            <% if (m.id !== currentUser.id) { %><a class="btn ghost small" href="/messages/<%= m.id %>"><%- h.icon('message') %> Message</a><% } %>
+          </div>
+        </article>
+      <% }) %>
+    </div>
+    <%- include('partials/pagination') %>
+  <% } else { %>
+    <div class="card empty"><h3>No members found</h3><p>Try a different search.</p><a class="btn secondary" href="/members">Clear filters</a></div>
+  <% } %>
+</div>
+<%- include('partials/foot') %>

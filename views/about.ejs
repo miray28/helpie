@@ -1,0 +1,23 @@
+<%- include('partials/head') %>
+<div class="container page">
+  <section class="split" style="padding-top:8px">
+    <div>
+      <h1>Our mission</h1>
+      <p class="lead">We believe medical supplies should reach the people who need them most. Helpie connects donors with recipients to make healthcare a little more accessible for everyone.</p>
+    </div>
+    <img class="illustration" src="/images/handshake.svg" alt="" loading="lazy">
+  </section>
+  <h2>Our values</h2>
+  <div class="steps" style="margin-bottom:40px">
+    <div class="card"><h3>Accessibility</h3><p class="muted">Making medical supplies available to everyone who needs them.</p></div>
+    <div class="card"><h3>Community</h3><p class="muted">Building a supportive network of donors and recipients.</p></div>
+    <div class="card"><h3>Impact</h3><p class="muted">Creating meaningful change, one hand-over at a time.</p></div>
+  </div>
+  <div class="card pad center">
+    <h2>Join our mission</h2>
+    <p class="muted">Be part of the community and help make healthcare more accessible.</p>
+    <a class="btn" href="<%= currentUser ? '/feed' : '/register' %>">Get started</a>
+    <a class="btn secondary" href="/contact">Contact us</a>
+  </div>
+</div>
+<%- include('partials/foot') %>

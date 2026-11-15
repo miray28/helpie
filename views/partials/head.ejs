@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title ? `${title} · ${settings.site_name}` : `${settings.site_name} — share medical supplies with those in need` %></title>
+  <meta name="description" content="<%= settings.site_description %>">
+  <meta name="csrf-token" content="<%= csrfToken %>">
+  <link rel="stylesheet" href="/css/app.css">
+  <script src="/js/app.js" defer></script>
+</head>
+<body>
+<% const nav = (href, label, badge) => `<a href="${href}"${path === href || (href !== '/' && path.startsWith(href + '/')) ? ' aria-current="page"' : ''}>${label}${badge ? ` <span class="count">${badge}</span>` : ''}</a>`; %>
+<header class="nav">
+  <div class="container nav-inner">
+    <a class="brand" href="<%= currentUser ? '/feed' : '/' %>">help<span>ie</span></a>
+    <% if (currentUser) { %>
+      <nav class="nav-links" aria-label="Main">
+        <%- nav('/feed', 'Feed') %>
+        <%- nav('/members', 'Members') %>
+        <%- nav('/messages', 'Messages', badges.messages) %>
+        <%- nav('/requests', 'Requests', badges.requests) %>
+        <%- nav('/activity', 'My activity') %>
+        <% if (currentUser.role === 'admin') { %><%- nav('/admin', 'Admin') %><% } %>
+      </nav>
+      <div class="nav-actions">
+        <a class="btn small" href="/posts/new"><%- h.icon('plus') %> New post</a>
+        <details class="menu">
+          <summary aria-label="Account menu"><img class="avatar" src="<%= h.avatar(currentUser) %>" alt=""></summary>
+          <div class="menu-panel">
+            <div class="who">Signed in as <strong><%= currentUser.username %></strong></div>
+            <a href="/profile">My profile</a>
+            <a href="/my-posts">My posts</a>
+            <a href="/saved">Saved posts</a>
+            <a href="/settings">Account settings</a>
+            <hr>
+            <form method="post" action="/logout">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <button type="submit">Sign out</button>
+            </form>
+          </div>
+        </details>
+      </div>
+    <% } else { %>
+      <nav class="nav-links" aria-label="Main">
+        <%- nav('/', 'Home') %>
+        <%- nav('/about', 'About') %>
+        <%- nav('/contact', 'Contact') %>
+      </nav>
+      <div class="nav-actions">
+        <a class="btn ghost small" href="/login">Sign in</a>
+        <a class="btn small" href="/register">Join us</a>
+      </div>
+    <% } %>
+  </div>
+</header>
+<main>
+<% if (flash.length) { %>
+  <div class="container" role="status">
+    <% flash.forEach((f) => { %><div class="flash <%= f.type %>"><%= f.message %></div><% }) %>
+  </div>
+<% } %>
