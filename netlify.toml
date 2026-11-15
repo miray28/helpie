@@ -9,3 +9,5 @@
   directory = "netlify/functions"
   # Templates are read from disk at runtime, so they must be shipped explicitly.
   included_files = ["views/**"]
+  # Shipped as regular node_modules rather than inlined into the bundle.
+  external_node_modules = ["express", "ejs", "express-session", "helmet", "multer", "bcryptjs", "pg", "serverless-http", "@netlify/blobs", "@netlify/database"]
