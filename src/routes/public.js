@@ -8,11 +8,14 @@ const router = express.Router();
 
 router.get('/', async (req, res) => {
   if (req.user) return res.redirect('/feed');
-  const stats = await db.get(`
-    SELECT (SELECT COUNT(*) FROM posts WHERE type = 'donation') AS donations,
-           (SELECT COUNT(*) FROM posts WHERE type = 'request') AS requests,
-           (SELECT COUNT(*) FROM users WHERE blocked = 0) AS members`);
-  res.render('landing', { title: '', stats });
+  const [stats, categories] = await Promise.all([
+    db.get(`
+      SELECT (SELECT COUNT(*) FROM posts WHERE type = 'donation') AS donations,
+             (SELECT COUNT(*) FROM posts WHERE type = 'request') AS requests,
+             (SELECT COUNT(*) FROM users WHERE blocked = 0) AS members`),
+    db.all('SELECT name FROM categories ORDER BY name'),
+  ]);
+  res.render('landing', { title: '', stats, categories });
 });
 
 router.get('/about', (req, res) => res.render('about', { title: 'About us' }));

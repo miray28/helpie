@@ -67,4 +67,31 @@
     document.addEventListener('click', (event) => { if (!menu.contains(event.target)) menu.open = false; });
     document.addEventListener('keydown', (event) => { if (event.key === 'Escape') menu.open = false; });
   }
+
+  // Landing page: reveal sections as they scroll into view and count up the stats.
+  const revealable = document.querySelectorAll('[data-reveal]');
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (revealable.length && 'IntersectionObserver' in window && !reduced) {
+    document.documentElement.classList.add('js-anim');
+    const countUp = (el) => {
+      const target = Number(el.dataset.count) || 0;
+      const start = performance.now();
+      const duration = 1100;
+      const tick = (now) => {
+        const t = Math.min(1, (now - start) / duration);
+        el.textContent = Math.round(target * (1 - Math.pow(1 - t, 3))).toLocaleString();
+        if (t < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    };
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('in');
+        entry.target.querySelectorAll('[data-count]').forEach(countUp);
+        observer.unobserve(entry.target);
+      });
+    }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+    revealable.forEach((el) => observer.observe(el));
+  }
 })();
