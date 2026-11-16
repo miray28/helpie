@@ -1,58 +1,82 @@
 <%- include('partials/head') %>
 <div class="landing">
-<div class="container">
-  <section class="hero">
-    <div>
-      <h1 data-reveal><em>Helpie:</em> share medical supplies with those in need</h1>
-      <p class="lead" data-reveal style="--i:1">Have medical supplies you no longer need? Or are you looking for essentials you can't easily get? Helpie connects donors and recipients directly — free, simple and local.</p>
-      <div class="row" data-reveal style="--i:2">
-        <a class="btn" href="/register">I want to donate</a>
-        <a class="btn secondary" href="/register?role=recipient">I need supplies</a>
-      </div>
-      <% if (stats.members > 0) { %>
-        <p class="muted small" style="margin-top:18px;--i:3" data-reveal><strong><%= stats.members %></strong> members · <strong><%= stats.donations %></strong> donations offered · <strong><%= stats.requests %></strong> requests posted</p>
-      <% } %>
-    </div>
-    <div class="hero-art" data-reveal="zoom" style="--i:1"><img src="/images/hero.svg" alt="" width="520" height="400"></div>
-  </section>
-</div>
-
-<section class="band">
-  <div class="container">
-    <h2 class="center" data-reveal>How it works</h2>
-    <p class="muted center" style="margin-bottom:24px" data-reveal>Three steps from a spare item to someone who needs it.</p>
-    <div class="steps">
-      <div class="card" data-reveal style="--i:0"><h3>Post</h3><p class="muted">Donors list supplies they can give. Recipients post what they need. Add a photo, condition and location.</p></div>
-      <div class="card" data-reveal style="--i:1"><h3>Connect</h3><p class="muted">Browse the feed, request a donation, and chat privately in real time to agree the details.</p></div>
-      <div class="card" data-reveal style="--i:2"><h3>Hand over</h3><p class="muted">Arrange pickup or delivery, then mark the item as claimed so the community knows it found a home.</p></div>
+  <div class="hero-wrap">
+    <div class="container">
+      <section class="hero">
+        <div>
+          <h1 data-reveal><em>Helpie:</em> share medical supplies with those in need</h1>
+          <p class="lead" data-reveal style="--i:1">Have medical supplies you no longer need? Or are you looking for essentials you can't easily get? Helpie connects donors and recipients directly — free, simple and local.</p>
+          <div class="row" data-reveal style="--i:2">
+            <a class="btn" href="/register">I want to donate</a>
+            <a class="btn secondary" href="/register?role=recipient">I need supplies</a>
+          </div>
+          <ul class="trust" data-reveal style="--i:3">
+            <li><%- h.icon('check') %> Free to use</li>
+            <li><%- h.icon('check') %> Private messaging</li>
+            <li><%- h.icon('check') %> Moderated community</li>
+          </ul>
+          <% if (stats.members > 0) { %>
+            <p class="muted small" data-reveal style="--i:4"><strong><%= stats.members %></strong> members · <strong><%= stats.donations %></strong> donations offered · <strong><%= stats.requests %></strong> requests posted</p>
+          <% } %>
+        </div>
+        <div class="hero-art" data-reveal="zoom" style="--i:1"><img src="/images/hero.svg" alt="" width="520" height="400"></div>
+      </section>
     </div>
   </div>
-</section>
 
-<div class="container">
-  <section class="split">
-    <img src="/images/how-it-works.svg" alt="" loading="lazy" data-reveal="left">
-    <div data-reveal="right">
-      <h2>Simple for donors and recipients</h2>
-      <p class="lead">Whether you're giving back or looking for medical supplies, Helpie keeps the process straightforward. Donors list what they have; people in need browse and request the items that fit.</p>
-    </div>
-  </section>
-  <section class="split flip">
-    <img src="/images/why-donate.svg" alt="" loading="lazy" data-reveal="right">
-    <div data-reveal="left">
-      <h2>Why donate through Helpie?</h2>
-      <p class="lead">You're not only decluttering — you're making a real difference. Unused supplies can provide essential care and comfort to someone who would otherwise go without.</p>
-      <a class="btn" href="/register">Join the community</a>
+  <section class="band">
+    <div class="container">
+      <div class="section-head" data-reveal>
+        <h2>How it works</h2>
+        <p>Three steps from a spare item to someone who needs it.</p>
+      </div>
+      <div class="steps">
+        <div class="card" data-reveal style="--i:0"><h3>Post</h3><p class="muted">Donors list supplies they can give. Recipients post what they need. Add a photo, condition and location.</p></div>
+        <div class="card" data-reveal style="--i:1"><h3>Connect</h3><p class="muted">Browse the feed, request a donation, and chat privately to agree the details.</p></div>
+        <div class="card" data-reveal style="--i:2"><h3>Hand over</h3><p class="muted">Arrange pickup or delivery, then mark the item as claimed so the community knows it found a home.</p></div>
+      </div>
     </div>
   </section>
 
-  <section class="container narrow faq" style="padding-bottom:64px" data-reveal>
-    <h2 class="center">Frequently asked questions</h2>
-    <details open><summary>Is there any cost to use Helpie?</summary><p>No. Helpie is completely free for both donors and recipients.</p></details>
-    <details><summary>What kind of medical supplies can I donate?</summary><p>Anything from bandages to wheelchairs, as long as it is safe, clean and legal to give away where you live. Prescription medication should not be listed.</p></details>
-    <details><summary>How do I know the supplies are safe to use?</summary><p>Donors confirm that items are unused or properly sanitised, and describe their condition honestly. If something looks wrong, report the post and our moderators will review it.</p></details>
-    <details><summary>How do I arrange pickup or delivery?</summary><p>Once connected, donors and recipients agree the details through Helpie's private messaging. We recommend meeting in a safe, public place.</p></details>
-  </section>
-</div>
+  <div class="container">
+    <section class="split">
+      <div class="art" data-reveal="left"><img src="/images/how-it-works.svg" alt="" loading="lazy"></div>
+      <div data-reveal="right">
+        <h2>Simple for donors and recipients</h2>
+        <p class="lead">Whether you're giving back or looking for medical supplies, Helpie keeps the process straightforward.</p>
+        <ul class="ticks">
+          <li><%- h.icon('check') %> Donors list what they have in under a minute</li>
+          <li><%- h.icon('check') %> People in need browse by category and location</li>
+          <li><%- h.icon('check') %> Requests are approved by the donor, then arranged in chat</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="split flip">
+      <div class="art" data-reveal="right"><img src="/images/why-donate.svg" alt="" loading="lazy"></div>
+      <div data-reveal="left">
+        <h2>Why donate through Helpie?</h2>
+        <p class="lead">You're not only decluttering — you're making a real difference. Unused supplies can provide essential care and comfort to someone who would otherwise go without.</p>
+        <a class="btn" href="/register">Join the community</a>
+      </div>
+    </section>
+
+    <section class="container narrow faq" data-reveal>
+      <div class="section-head"><h2>Frequently asked questions</h2></div>
+      <details open><summary>Is there any cost to use Helpie?</summary><p>No. Helpie is completely free for both donors and recipients.</p></details>
+      <details><summary>What kind of medical supplies can I donate?</summary><p>Anything from bandages to wheelchairs, as long as it is safe, clean and legal to give away where you live. Prescription medication should not be listed.</p></details>
+      <details><summary>How do I know the supplies are safe to use?</summary><p>Donors confirm that items are unused or properly sanitised, and describe their condition honestly. If something looks wrong, report the post and our moderators will review it.</p></details>
+      <details><summary>How do I arrange pickup or delivery?</summary><p>Once connected, donors and recipients agree the details through Helpie's private messaging. We recommend meeting in a safe, public place.</p></details>
+    </section>
+
+    <section class="cta" data-reveal="zoom">
+      <h2>Ready to help, or need a hand?</h2>
+      <p>Create a free account and post your first donation or request in minutes.</p>
+      <div class="row" style="justify-content:center">
+        <a class="btn" href="/register">Get started</a>
+        <a class="btn secondary" href="/about">Learn more</a>
+      </div>
+    </section>
+  </div>
 </div>
 <%- include('partials/foot') %>

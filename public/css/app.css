@@ -275,13 +275,43 @@ td select { width: auto; padding: 5px 8px; font-size: .86rem; }
 
 /* Landing page */
 .landing { overflow-x: clip; }
-.hero { padding: 56px 0 40px; display: grid; gap: 40px; grid-template-columns: 1.2fr 1fr; align-items: center; }
-.hero h1 { font-size: clamp(2rem, 1.3rem + 3.2vw, 3.2rem); letter-spacing: -.03em; }
+.landing h2 { font-size: clamp(1.5rem, 1.15rem + 1.5vw, 2.05rem); letter-spacing: -.02em; }
+.hero-wrap { background: radial-gradient(900px 420px at 85% 0%, #e9f8ef 0%, rgba(233, 248, 239, 0) 70%), radial-gradient(600px 300px at 0% 100%, #f1faf4 0%, rgba(241, 250, 244, 0) 70%); }
+.hero { padding: 64px 0 56px; display: grid; gap: 48px; grid-template-columns: 1.15fr 1fr; align-items: center; }
+.hero h1 { font-size: clamp(2.1rem, 1.3rem + 3.4vw, 3.4rem); letter-spacing: -.035em; line-height: 1.06; margin-bottom: 18px; }
 .hero h1 em { font-style: normal; color: var(--green); }
-.hero .btn { transition: transform .2s ease, box-shadow .2s ease, background .15s; }
-.hero .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(31, 143, 84, .18); }
+.hero .lead { margin-bottom: 26px; }
+.hero .btn { padding: 12px 22px; font-size: 1rem; transition: transform .2s ease, box-shadow .2s ease, background .15s; }
+.hero .btn:not(.secondary) { box-shadow: 0 8px 22px rgba(31, 143, 84, .25); }
+.hero .btn:hover { transform: translateY(-2px); }
+.trust { list-style: none; padding: 0; margin: 22px 0 10px; display: flex; flex-wrap: wrap; gap: 8px 20px; color: var(--muted); font-size: .92rem; font-weight: 500; }
+.trust li { display: inline-flex; align-items: center; gap: 6px; }
+.trust .icon { color: var(--green); }
 .hero-art img { width: 100%; height: auto; animation: float 7s ease-in-out infinite; }
-.band { background: var(--surface-2); border-block: 1px solid var(--border); padding: 48px 0; }
+
+.section-head { text-align: center; max-width: 620px; margin: 0 auto 32px; }
+.section-head h2 { margin-bottom: 8px; }
+.section-head p { color: var(--muted); margin: 0; }
+.band { background: var(--surface-2); border-block: 1px solid var(--border); padding: 64px 0; }
+.landing .steps { position: relative; }
+.landing .steps .card h3 { font-size: 1.15rem; }
+
+.landing .split { padding: 64px 0; gap: 56px; }
+.split .art { background: var(--surface-2); border-radius: 28px; padding: 28px; }
+.split .art img { transition: transform .5s ease; }
+.split .art:hover img { transform: scale(1.03); }
+.ticks { list-style: none; padding: 0; margin: 0 0 8px; }
+.ticks li { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 12px; }
+.ticks .icon { color: #fff; background: var(--green); border-radius: 50%; padding: 3px; width: 1.25em; height: 1.25em; margin-top: 2px; stroke-width: 3; }
+
+.landing .faq { padding: 24px 0 64px; }
+.landing .faq details { border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 10px; background: #fff; transition: border-color .2s ease, box-shadow .2s ease; }
+.landing .faq details:last-child { border-bottom: 1px solid var(--border); }
+.landing .faq details[open] { border-color: color-mix(in srgb, var(--green) 40%, var(--border)); box-shadow: var(--shadow); }
+
+.cta { margin: 0 0 72px; padding: 48px 24px; border-radius: 28px; text-align: center; background: linear-gradient(135deg, #eaf8f0, #f4fbf7); border: 1px solid color-mix(in srgb, var(--green) 22%, var(--border)); }
+.cta p { color: var(--muted); max-width: 48ch; margin: 0 auto 22px; }
+.cta .btn { padding: 12px 22px; font-size: 1rem; }
 
 /* Scroll-reveal: elements start hidden only once the script has marked the page as animated. */
 .js-anim [data-reveal] { opacity: 0; transform: translateY(26px); transition: opacity .7s cubic-bezier(.2, .7, .2, 1), transform .7s cubic-bezier(.2, .7, .2, 1); transition-delay: calc(var(--i, 0) * 90ms); }
@@ -299,6 +329,9 @@ td select { width: auto; padding: 5px 8px; font-size: .86rem; }
   .split { padding: 40px 0; }
   .split.flip > :first-child { order: 0; }
   .hero-art { max-width: 460px; margin: 0 auto; }
+  .landing .split { padding: 40px 0; gap: 28px; }
+  .split .art { padding: 18px; border-radius: 20px; }
+  .band { padding: 48px 0; }
 }
 
 .footer { border-top: 1px solid var(--border); padding: 22px 0; color: var(--muted); font-size: .9rem; background: var(--surface-2); }
