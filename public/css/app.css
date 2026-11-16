@@ -343,6 +343,27 @@ td select { width: auto; padding: 5px 8px; font-size: .86rem; }
 @keyframes underline { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes shadow { 0%, 100% { transform: scaleX(1); opacity: 1; } 50% { transform: scaleX(.86); opacity: .6; } }
 
+/* On larger screens every landing section fills the window, with its content centred. */
+@media (min-width: 861px) and (min-height: 560px) {
+  .landing { --screen: calc(100vh - 61px); }
+  @supports (height: 100svh) { .landing { --screen: calc(100svh - 61px); } }
+  .landing .container { max-width: 1280px; }
+  body:has(.landing) .nav .container, body:has(.landing) .footer .container { max-width: 1280px; }
+  .landing .container.narrow { max-width: 780px; }
+  .hero-wrap, .band, .latest, .shares, .landing .faq, .cta-screen { min-height: var(--screen); display: flex; flex-direction: column; justify-content: center; }
+  .hero-wrap > .container, .band > .container { width: 100%; }
+  .landing .split { min-height: var(--screen); padding: 32px 0; }
+  .hero { padding: 32px 0; gap: 64px; }
+  .hero h1 { font-size: clamp(2.6rem, 1rem + 3.6vw, 4.4rem); }
+  .hero .lead { font-size: 1.25rem; max-width: 52ch; }
+  .latest { padding-top: 32px; padding-bottom: 32px; }
+  .shares, .landing .faq { padding-top: 32px; padding-bottom: 32px; }
+  .cta { margin: 0; padding: 72px 24px; }
+  .cta-screen { padding: 32px 0; }
+  .landing .section-head { margin-bottom: 40px; }
+  .landing .steps .card { padding: 32px 28px; }
+}
+
 /* Scroll-reveal: elements start hidden only once the script has marked the page as animated. */
 .js-anim [data-reveal] { opacity: 0; transform: translateY(26px); transition: opacity .7s cubic-bezier(.2, .7, .2, 1), transform .7s cubic-bezier(.2, .7, .2, 1); transition-delay: calc(var(--i, 0) * 90ms); }
 .js-anim [data-reveal="left"] { transform: translateX(-34px); }
