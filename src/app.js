@@ -29,7 +29,7 @@ app.use(helmet({
   },
 }));
 
-// On Netlify the CDN serves public/ directly; this only matters locally.
+// On Netlify and Vercel the CDN serves public/ directly; this only matters locally.
 app.use(express.static(path.join(config.root, 'public'), { maxAge: config.isProd ? '7d' : 0 }));
 
 // Health check: confirms the function can reach the database.
@@ -52,6 +52,7 @@ app.get('/uploads/:folder/:file', async (req, res, next) => {
     'Content-Type': image.contentType,
     'Cache-Control': 'public, max-age=31536000, immutable',
     'Netlify-CDN-Cache-Control': 'public, max-age=31536000, immutable',
+    'Vercel-CDN-Cache-Control': 'max-age=31536000',
     'Content-Security-Policy': "default-src 'none'; sandbox",
     'X-Content-Type-Options': 'nosniff',
   });

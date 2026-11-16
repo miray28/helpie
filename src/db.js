@@ -44,6 +44,30 @@ function wrap(query) {
 
 const MIGRATIONS_DIR = path.join(config.root, 'netlify', 'database', 'migrations');
 
+// Applies any migration file that has not been recorded yet. Safe to run from
+// several function instances at once: an advisory lock serialises them.
+async function migrate(pool) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('SELECT pg_advisory_xact_lock(727274)');
+    await client.query('CREATE TABLE IF NOT EXISTS schema_migrations (name text PRIMARY KEY, applied_at bigint NOT NULL)');
+    const applied = new Set((await client.query('SELECT name FROM schema_migrations')).rows.map((r) => r.name));
+    for (const file of fs.readdirSync(MIGRATIONS_DIR).sort()) {
+      if (applied.has(file)) continue;
+      await client.query(fs.readFileSync(path.join(MIGRATIONS_DIR, file), 'utf8'));
+      await client.query('INSERT INTO schema_migrations (name, applied_at) VALUES ($1, $2)', [file, Date.now()]);
+      console.log(`Applied database migration ${file}`);
+    }
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
 function createHosted() {
   const { Pool, types } = require('pg');
   types.setTypeParser(20, Number); // bigint (timestamps, counts) -> JS number
@@ -58,9 +82,18 @@ function createHosted() {
   });
   pool.on('error', (err) => console.error('Database pool error:', err.message));
   const normalise = (r) => ({ rows: r.rows || [], rowCount: r.rowCount || 0 });
+  // Migrate once per instance; if it fails (database briefly unreachable) the
+  // next query tries again instead of leaving the instance permanently broken.
+  let migration = null;
+  const ensureReady = () => {
+    if (!config.selfMigrate) return Promise.resolve();
+    if (!migration) migration = migrate(pool).catch((err) => { migration = null; throw err; });
+    return migration;
+  };
   return {
-    ...wrap(async (text, values) => normalise(await pool.query(text, values))),
+    ...wrap(async (text, values) => { await ensureReady(); return normalise(await pool.query(text, values)); }),
     async tx(fn) {
+      await ensureReady();
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
@@ -74,7 +107,7 @@ function createHosted() {
         client.release();
       }
     },
-    ready: Promise.resolve(), // Netlify applies the migrations on deploy
+    get ready() { return ensureReady(); },
     close: () => pool.end(),
   };
 }

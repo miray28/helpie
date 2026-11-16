@@ -2,6 +2,7 @@
 const crypto = require('crypto');
 const { db, getSettings } = require('./db');
 const helpers = require('./helpers');
+const config = require('./config');
 
 function flash(req, type, message) {
   req.session.flash = req.session.flash || [];
@@ -110,10 +111,12 @@ function maintenance(req, res, next) {
   });
 }
 
-// The visitor's address. On Netlify the real client IP arrives in a header
-// set by the platform (it cannot be spoofed by the visitor).
+// The visitor's address. Netlify and Vercel put the real client IP in a
+// header that the platform sets itself, so the visitor cannot spoof it.
 function clientIp(req) {
-  return req.get('x-nf-client-connection-ip') || req.ip || 'unknown';
+  if (config.onNetlify) return req.get('x-nf-client-connection-ip') || req.ip || 'unknown';
+  if (config.onVercel) return req.get('x-real-ip') || req.ip || 'unknown';
+  return req.ip || 'unknown';
 }
 
 // Fixed-window rate limiter stored in the database, so the limit holds across

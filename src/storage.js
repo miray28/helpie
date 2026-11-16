@@ -5,17 +5,63 @@ const crypto = require('crypto');
 const multer = require('multer');
 const config = require('./config');
 
-// Uploaded images. On Netlify they are kept in Netlify Blobs (functions have
-// no persistent disk); locally they are plain files under DATA_DIR/uploads.
+// Uploaded images. Serverless hosts have no persistent disk, so on Vercel they
+// go to Vercel Blob and on Netlify to Netlify Blobs; locally they are plain
+// files under DATA_DIR/uploads. Either way the app serves them from /uploads.
 
 const KEY_PATTERN = /^(posts|profiles)\/[a-f0-9]{32}\.(jpg|png|gif|webp)$/;
 const CONTENT_TYPES = { jpg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp' };
 const localDir = path.join(config.dataDir, 'uploads');
 
-function blobStore() {
-  const { getStore } = require('@netlify/blobs');
-  return getStore('uploads');
-}
+const backends = {
+  disk: {
+    async put(key, buffer) {
+      await fs.promises.mkdir(path.dirname(path.join(localDir, key)), { recursive: true });
+      await fs.promises.writeFile(path.join(localDir, key), buffer);
+    },
+    async get(key) {
+      try {
+        return await fs.promises.readFile(path.join(localDir, key));
+      } catch (err) {
+        if (err.code === 'ENOENT') return null;
+        throw err;
+      }
+    },
+    remove: (key) => fs.promises.rm(path.join(localDir, key), { force: true }),
+  },
+
+  'netlify-blobs': {
+    store: () => require('@netlify/blobs').getStore('uploads'),
+    put(key, buffer) {
+      return this.store().set(key, buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength));
+    },
+    async get(key) {
+      const data = await this.store().get(key, { type: 'arrayBuffer' });
+      return data ? Buffer.from(data) : null;
+    },
+    remove(key) { return this.store().delete(key); },
+  },
+
+  'vercel-blob': {
+    async put(key, buffer, contentType) {
+      await require('@vercel/blob').put(key, buffer, { access: 'public', addRandomSuffix: false, contentType });
+    },
+    async get(key) {
+      const { head, BlobNotFoundError } = require('@vercel/blob');
+      let info;
+      try {
+        info = await head(key);
+      } catch (err) {
+        if (err instanceof BlobNotFoundError) return null;
+        throw err;
+      }
+      const res = await fetch(info.url);
+      return res.ok ? Buffer.from(await res.arrayBuffer()) : null;
+    },
+    remove: (key) => require('@vercel/blob').del(key),
+  },
+};
+const backend = backends[config.storage];
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -43,37 +89,21 @@ async function saveImage(file, folder) {
     throw err;
   }
   const key = `${folder}/${crypto.randomBytes(16).toString('hex')}.${ext}`;
-  if (config.onNetlify) {
-    const data = file.buffer.buffer.slice(file.buffer.byteOffset, file.buffer.byteOffset + file.buffer.byteLength);
-    await blobStore().set(key, data);
-  } else {
-    await fs.promises.mkdir(path.join(localDir, folder), { recursive: true });
-    await fs.promises.writeFile(path.join(localDir, key), file.buffer);
-  }
+  await backend.put(key, file.buffer, CONTENT_TYPES[ext]);
   return key;
 }
 
 async function readImage(key) {
   if (!KEY_PATTERN.test(key)) return null;
-  const contentType = CONTENT_TYPES[key.split('.').pop()];
-  if (config.onNetlify) {
-    const data = await blobStore().get(key, { type: 'arrayBuffer' });
-    return data ? { body: Buffer.from(data), contentType } : null;
-  }
-  try {
-    return { body: await fs.promises.readFile(path.join(localDir, key)), contentType };
-  } catch (err) {
-    if (err.code === 'ENOENT') return null;
-    throw err;
-  }
+  const body = await backend.get(key);
+  return body ? { body, contentType: CONTENT_TYPES[key.split('.').pop()] } : null;
 }
 
 // Best effort: a failed delete only leaves an orphaned file behind.
 async function removeImage(key) {
   if (!key || !KEY_PATTERN.test(key)) return;
   try {
-    if (config.onNetlify) await blobStore().delete(key);
-    else await fs.promises.rm(path.join(localDir, key), { force: true });
+    await backend.remove(key);
   } catch (err) {
     console.error('Could not delete image', key, err.message);
   }
