@@ -1,14 +1,19 @@
 </main>
 <footer class="footer">
-  <div class="container row between">
-    <span>&copy; <%= new Date().getFullYear() %> <%= settings.site_name %></span>
-    <span class="row">
+  <div class="container footer-grid">
+    <div>
+      <a class="brand" href="/">help<span>ie</span></a>
+      <p><%= settings.site_description %></p>
+    </div>
+    <nav aria-label="Footer">
       <a href="/about">About</a>
       <a href="/contact">Contact</a>
       <a href="/terms">Terms</a>
       <a href="/privacy">Privacy</a>
-    </span>
+    </nav>
   </div>
+  <div class="container footer-note">&copy; <%= new Date().getFullYear() %> <%= settings.site_name %>. Made for people helping people.</div>
 </footer>
+<button class="to-top" type="button" data-to-top aria-label="Back to top" hidden>↑</button>
 </body>
 </html>

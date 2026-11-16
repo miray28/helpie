@@ -4,10 +4,10 @@
     <div class="container">
       <section class="hero">
         <div>
-          <h1 data-reveal><em>Helpie:</em> share medical supplies with those in need</h1>
+          <h1 data-reveal><em>Helpie:</em> share medical supplies with <span class="mark">those in need</span></h1>
           <p class="lead" data-reveal style="--i:1">Have medical supplies you no longer need? Or are you looking for essentials you can't easily get? Helpie connects donors and recipients directly — free, simple and local.</p>
           <div class="row" data-reveal style="--i:2">
-            <a class="btn" href="/register">I want to donate</a>
+            <a class="btn" href="/register"><%- h.icon('heart') %> I want to donate</a>
             <a class="btn secondary" href="/register?role=recipient">I need supplies</a>
           </div>
           <ul class="trust" data-reveal style="--i:3">
@@ -38,6 +38,34 @@
     </div>
   </section>
 
+  <% if (latest.length) { %>
+  <section class="container latest">
+    <div class="section-head" data-reveal>
+      <h2>Available right now</h2>
+      <p>The newest posts from the community. Sign in to see details and get in touch.</p>
+    </div>
+    <div class="grid">
+      <% latest.forEach((post, i) => { %>
+        <a class="card post-card preview" href="/posts/<%= post.id %>" data-reveal style="--i:<%= i %>">
+          <span class="thumb">
+            <img src="<%= h.postImage(post) %>" alt="" loading="lazy">
+            <span class="badges"><span class="badge <%= post.type %>"><%= post.type === 'donation' ? 'Donation' : 'Request' %></span></span>
+          </span>
+          <span class="body">
+            <strong><%= post.title %></strong>
+            <span class="meta">
+              <% if (post.category_name) { %><span><%- h.icon('tag') %> <%= post.category_name %></span><% } %>
+              <% if (post.location) { %><span><%- h.icon('pin') %> <%= post.location %></span><% } %>
+              <span><%- h.icon('clock') %> <%= h.timeAgo(post.created_at) %></span>
+            </span>
+          </span>
+        </a>
+      <% }) %>
+    </div>
+    <p class="center" style="margin:24px 0 0" data-reveal><a class="btn secondary" href="/feed">Browse all posts →</a></p>
+  </section>
+  <% } %>
+
   <div class="container">
     <section class="split">
       <div class="art" data-reveal="left"><img src="/images/how-it-works.svg" alt="" loading="lazy"></div>
@@ -60,6 +88,23 @@
         <a class="btn" href="/register">Join the community</a>
       </div>
     </section>
+
+    <% if (categories.length) { %>
+    <section class="shares">
+      <div class="section-head" data-reveal>
+        <h2>What you can share</h2>
+        <p>From everyday consumables to equipment that changes someone's independence.</p>
+      </div>
+      <div class="cat-grid">
+        <% categories.forEach((c, i) => { %>
+          <div class="cat" data-reveal style="--i:<%= i % 4 %>">
+            <b><%- h.icon('heart') %></b>
+            <span><strong><%= c.name %></strong><% if (c.description) { %><small><%= c.description %></small><% } %></span>
+          </div>
+        <% }) %>
+      </div>
+    </section>
+    <% } %>
 
     <section class="container narrow faq" data-reveal>
       <div class="section-head"><h2>Frequently asked questions</h2></div>

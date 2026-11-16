@@ -94,4 +94,15 @@
     }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
     revealable.forEach((el) => observer.observe(el));
   }
+
+  // Header shadow once the page is scrolled, and a back-to-top button on long pages.
+  const header = document.querySelector('.nav');
+  const toTop = document.querySelector('[data-to-top]');
+  const onScroll = () => {
+    if (header) header.classList.toggle('scrolled', window.scrollY > 8);
+    if (toTop) toTop.hidden = window.scrollY < 700;
+  };
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+  if (toTop) toTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 })();
